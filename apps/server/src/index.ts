@@ -8,6 +8,7 @@ type Bindings = {
   ENVIRONMENT: string;
   SESSION_SECRET: string;
   TICKET: DurableObjectNamespace<TicketRoom>;
+  CORS_ALLOW_ORIGIN: string;
 };
 
 const app = new Hono<{ Bindings: Bindings; Variables: { uid: string } }>();
@@ -41,7 +42,7 @@ app.post(
 
 app.use("/ws/connect", (c, next) =>
   cors({
-    origin: c.env.ENVIRONMENT === "development" ? "*" : "https://example.com",
+    origin: c.env.CORS_ALLOW_ORIGIN,
     allowHeaders: ["Authorization"],
   })(c, next)
 );
