@@ -1,14 +1,46 @@
 import { Link, useOutletContext } from "@remix-run/react";
+import { Fragment } from "react/jsx-runtime";
+import { SeatPicker } from "~/components/SeatPicker";
+import BottomFooter from "~/components/layout/BottomFooter";
+import { StepHeader } from "~/components/layout/StepHeader";
 import { UseReservedSeats } from "~/websocket/useReservedSeats";
+
+const createSeats = (row: string, length: number, gapsAfter: number[]) => ({
+  row,
+  seats: new Array(length).fill(row).map((x, i) => `${x}${i + 1}`),
+  gapsAfter: Object.fromEntries(gapsAfter.map((x) => [`${row}${x}`, true])),
+});
+const seatsRow = [createSeats("B", 27, [6, 21]), createSeats("A", 25, [5, 20])];
 
 export default function SeatingBooking() {
   const ctx = useOutletContext<UseReservedSeats>();
-  if (!ctx.loaded) return null;
-  const { updateSeat, seats, ownedSeats, round } = ctx;
   return (
-    <div>
-      <h1>Seat Booking</h1>
-      <div className="flex gap-2 flex-wrap">
+    <>
+      <StepHeader no={1}></StepHeader>
+      <SeatPicker
+        initialScrollToSeat={(ctx.loaded && ctx.ownedSeats?.[0]) || undefined}
+      >
+        {seatsRow.map(({ row, seats, gapsAfter }) => (
+          <SeatPicker.Row key={row}>
+            {seats.map((seat) => (
+              <Fragment key={seat}>
+                <SeatPicker.Seat
+                  seat={seat}
+                  status={
+                    ctx.loaded ? ctx.seats[seat] ?? "available" : undefined
+                  }
+                  onClick={
+                    ctx.loaded ? () => ctx.updateSeat({ seat }) : undefined
+                  }
+                />
+                {gapsAfter[seat] && <SeatPicker.Gap>{row}</SeatPicker.Gap>}
+              </Fragment>
+            ))}
+          </SeatPicker.Row>
+        ))}
+        <SeatPicker.Stage />
+      </SeatPicker>
+      {/* <div className="flex gap-2 flex-wrap">
         {new Array(10).fill(null).map((_, i) => (
           <button
             className={`${
@@ -19,22 +51,37 @@ export default function SeatingBooking() {
                 : "bg-black"
             } text-white px-4 py-2 rounded-lg`}
             key={i}
-            onClick={() => updateSeat({ seat: i.toString() })}
+            onClick={)}
           >
             Seat {i + 1}
           </button>
         ))}
-      </div>
-      <div className="flex flex-row gap-4">
-        <div className="flex flex-col flex-grow">
-          <span>Selected: {ownedSeats?.length ?? 0}</span>
+      </div> */}
+      <BottomFooter className="gap-4">
+        <div className="flex flex-col flex-grow gap-1">
+          <span>
+            <b>เลือกแล้ว</b> {ctx.loaded ? ctx.ownedSeats.length : 0} ที่นั่ง
+            {ctx.loaded && ctx.ownedSeats.length >= 4 && (
+              <span className="text-red-700 font-medium"> (สูงสุด)</span>
+            )}
+          </span>
+          <span className="text-xs text-zinc-400">
+            ที่นั่ง {ctx.loaded && ctx.ownedSeats.join(", ")}
+          </span>
         </div>
-        <div>
-          {ownedSeats && ownedSeats.length > 0 && (
-            <Link to={`/booking/${round}/confirm`}>Continue</Link>
+        <div className="flex items-center">
+          {ctx.loaded && (
+            <Link
+              to={`/booking/${ctx.round}/confirm`}
+              className={`px-4 py-2 bg-white text-black rounded-lg ${
+                ctx.ownedSeats.length > 0 ? "opacity-100" : "opacity-0"
+              } duration-150`}
+            >
+              ดำเนินการต่อ
+            </Link>
           )}
         </div>
-      </div>
-    </div>
+      </BottomFooter>
+    </>
   );
 }
