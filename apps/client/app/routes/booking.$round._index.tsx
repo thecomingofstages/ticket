@@ -1,10 +1,10 @@
-import { Link } from "@remix-run/react";
-import { useMemo } from "react";
-import { useReservedSeats } from "~/websocket/useReservedSeats";
+import { Link, useOutletContext } from "@remix-run/react";
+import { UseReservedSeats } from "~/websocket/useReservedSeats";
 
 export default function SeatingBooking() {
-  const room = useMemo(() => "default", []);
-  const { seats, ownedSeats, updateSeat } = useReservedSeats({ room });
+  const ctx = useOutletContext<UseReservedSeats>();
+  if (!ctx.loaded) return null;
+  const { updateSeat, seats, ownedSeats, round } = ctx;
   return (
     <div>
       <h1>Seat Booking</h1>
@@ -12,9 +12,9 @@ export default function SeatingBooking() {
         {new Array(10).fill(null).map((_, i) => (
           <button
             className={`${
-              seats?.[i.toString()] === "reserved"
+              seats[i.toString()] === "reserved"
                 ? "bg-red-500"
-                : seats?.[i.toString()] === "selected"
+                : seats[i.toString()] === "selected"
                 ? "bg-yellow-700"
                 : "bg-black"
             } text-white px-4 py-2 rounded-lg`}
@@ -31,7 +31,7 @@ export default function SeatingBooking() {
         </div>
         <div>
           {ownedSeats && ownedSeats.length > 0 && (
-            <Link to="/booking/seat/confirm">Continue</Link>
+            <Link to={`/booking/${round}/confirm`}>Continue</Link>
           )}
         </div>
       </div>

@@ -1,23 +1,33 @@
 import { initConnect } from "./lib/initConnect";
 import { SeatStatus, WSClientEvents, WSServerEvents, client } from "~/rpc";
 import useSWR from "swr";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
+import useSWRSubscription from "swr/subscription";
 
-type WebSocketConnectionState = { room: string } & (
+export type UseReservedSeats = {
+  round: string;
+  updateSeat: (args: { seat: string }) => void;
+} & (
   | {
-      status: "connected";
+      loaded: true;
+      seats: Record<string, SeatStatus>;
+      ownedSeats: string[];
     }
   | {
-      status: "disconnected";
-      error?: Error;
+      loaded: false;
     }
 );
-export const useReservedSeats = ({ room }: { room: string }) => {
+
+export const useReservedSeats = ({
+  round,
+}: {
+  round: string;
+}): UseReservedSeats => {
   // we use swr instead of plain state
   // so that on prefetch we can fill initial data from the server, if we want
   // and the state can survive across renders!
   const { data, mutate } = useSWR<Record<string, SeatStatus>>(
-    ["seats", room],
+    [round, "seats"],
     () => {
       return {};
     },
@@ -29,97 +39,95 @@ export const useReservedSeats = ({ room }: { room: string }) => {
     }
   );
 
-  const ws = useRef<WebSocket | null>(null);
-  const [connect, setConnect] = useState<WebSocketConnectionState>({
-    room,
-    status: "disconnected",
-  });
+  // connectToken will only fetched once
+  // and will refetch if disconnected or error on the server
+  const { data: connectToken, mutate: refreshToken } = useSWR(
+    [round, "ws", "token"],
+    async () => initConnect(),
+    {
+      refreshWhenOffline: true,
+      revalidateOnMount: true,
+      revalidateOnReconnect: true,
+      refreshWhenHidden: false,
+      revalidateIfStale: false,
+      revalidateOnFocus: false,
+    }
+  );
 
-  const initWsConnect = useCallback(
-    async (signal: AbortSignal, room: string) => {
-      try {
-        const token = await initConnect(signal);
-        const url = client.ws[":token"].ticket[":room"].$url({
-          param: { token, room },
-        });
-        if (ws.current) {
-          ws.current.close();
-        }
-        ws.current = new WebSocket(`ws://${url.host}${url.pathname}`);
-        ws.current.addEventListener("close", () => {
-          // console.log("Server close connect", event);
-          ws.current = null;
-          setConnect({
-            status: "disconnected",
-            room,
-            error: new Error("Websocket Connection Error"),
-          });
-        });
-        ws.current.addEventListener("error", () => {
-          // console.log("Server error connect", event);
-          setConnect({
-            status: "disconnected",
-            error: new Error("Websocket Connection Error"),
-            room,
-          });
-          ws.current = null;
-        });
-        ws.current.addEventListener("open", () => {
-          setConnect({ status: "connected", room });
-        });
-        ws.current.addEventListener("message", (event) => {
-          const message = JSON.parse(event.data) as WSClientEvents;
-          console.log("message", message);
-          if (message.type === "seatChanged") {
-            mutate((seats) => {
+  // holds the current websocket connection state
+  // still use swr so that we can benefit from
+  // automatic cleanup when deps changed
+  const { data: ws, error: wsError } = useSWRSubscription<
+    WebSocket,
+    { status: "closed" } | { status: "error"; error: Event },
+    [string, "ws", string] | null
+  >(
+    connectToken ? [round, "ws", connectToken] : null,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    ([room, _, token], { next }) => {
+      let ws: WebSocket | null = null;
+      const url = client.ws[":token"].ticket[":room"].$url({
+        param: { token, room },
+      });
+      ws = new WebSocket(`ws://${url.host}${url.pathname}`);
+      ws.addEventListener("close", () => {
+        next({ status: "closed" });
+      });
+      ws.addEventListener("error", (event) => {
+        next({ status: "error", error: event });
+      });
+      ws.addEventListener("open", () => {
+        next(undefined, ws!);
+        // ready! mount the value!
+        mutate();
+      });
+      ws.addEventListener("message", (event) => {
+        const message = JSON.parse(event.data) as WSClientEvents;
+        console.log("message", message);
+        if (message.type === "seatChanged") {
+          mutate((seats) => {
+            return {
+              ...(seats ?? {}),
+              [message.seat]: message.status,
+            };
+          }, false);
+        } else if (message.type === "seatsChanged") {
+          mutate((seats) => {
+            return message.seats.reduce((acc, seat) => {
               return {
-                ...(seats ?? {}),
-                [message.seat]: message.status,
+                ...acc,
+                [seat]: message.status,
               };
-            }, false);
-          } else if (message.type === "seatsChanged") {
-            mutate((seats) => {
-              return message.seats.reduce((acc, seat) => {
-                return {
-                  ...acc,
-                  [seat]: message.status,
-                };
-              }, seats ?? {});
-            }, false);
-          }
-        });
-      } catch (err) {
-        if (typeof err === "string" && err === "Unmount") return;
-        throw err;
-      }
-    },
-    [mutate]
+            }, seats ?? {});
+          }, false);
+        }
+      });
+
+      return () => {
+        ws?.close();
+      };
+    }
   );
 
   useEffect(() => {
-    const abortController = new AbortController();
-    // console.log(connect, room, connect.room !== room);
-    if (connect.status === "disconnected" && !connect.error) {
-      // console.log("Will connect", "reason: not currently connected");
-      initWsConnect(abortController.signal, room);
-    } else if (connect.room !== room) {
-      // console.log("Will connect", "reason: room changed");
-      initWsConnect(abortController.signal, room);
+    if (wsError?.status === "error") {
+      // try reconnect to the server
+      refreshToken();
     }
-    return () => {
-      abortController.abort("Unmount");
-    };
-  }, [connect, initWsConnect, room]);
+  }, [refreshToken, wsError]);
 
-  const updateSeat = useCallback(({ seat }: { seat: string }) => {
-    if (!ws.current) return;
-    ws.current.send(
-      JSON.stringify({ type: "toggleSeat", seat } satisfies WSServerEvents)
-    );
-  }, []);
+  const updateSeat = useCallback(
+    ({ seat }: { seat: string }) => {
+      if (!ws) return;
+      ws.send(
+        JSON.stringify({ type: "toggleSeat", seat } satisfies WSServerEvents)
+      );
+    },
+    [ws]
+  );
 
   const ownedSeats = useMemo(() => {
-    if (!data) return null;
+    if (!data) return [];
     const seats = [];
     for (const [seat, status] of Object.entries(data)) {
       if (status === "selected") {
@@ -129,7 +137,17 @@ export const useReservedSeats = ({ room }: { room: string }) => {
     return seats;
   }, [data]);
 
+  if (!ws || !data) {
+    return {
+      round,
+      loaded: false,
+      updateSeat,
+    };
+  }
+
   return {
+    round,
+    loaded: true,
     seats: data,
     ownedSeats,
     updateSeat,
