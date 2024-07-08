@@ -1,7 +1,7 @@
 import { initConnect } from "./lib/initConnect";
 import { SeatStatus, WSClientEvents, WSServerEvents, client } from "~/rpc";
 import useSWR from "swr";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type WebSocketConnectionState = { room: string } & (
   | {
@@ -118,8 +118,20 @@ export const useReservedSeats = ({ room }: { room: string }) => {
     );
   }, []);
 
+  const ownedSeats = useMemo(() => {
+    if (!data) return null;
+    const seats = [];
+    for (const [seat, status] of Object.entries(data)) {
+      if (status === "selected") {
+        seats.push(seat);
+      }
+    }
+    return seats;
+  }, [data]);
+
   return {
-    data,
+    seats: data,
+    ownedSeats,
     updateSeat,
   };
 };

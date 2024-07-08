@@ -39,7 +39,7 @@ app.post(
   }
 );
 
-app.use("/connect", (c, next) =>
+app.use("/ws/connect", (c, next) =>
   cors({
     origin: c.env.ENVIRONMENT === "development" ? "*" : "https://example.com",
     allowHeaders: ["Authorization"],

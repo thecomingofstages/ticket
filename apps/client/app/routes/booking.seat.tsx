@@ -1,13 +1,10 @@
-import { useEffect, useMemo } from "react";
+import { Link } from "@remix-run/react";
+import { useMemo } from "react";
 import { useReservedSeats } from "~/websocket/useReservedSeats";
 
 export default function SeatingBooking() {
   const room = useMemo(() => "default", []);
-  const { data: seats, updateSeat } = useReservedSeats({ room });
-
-  useEffect(() => {
-    console.log(seats);
-  }, [seats]);
+  const { seats, ownedSeats, updateSeat } = useReservedSeats({ room });
   return (
     <div>
       <h1>Seat Booking</h1>
@@ -27,6 +24,16 @@ export default function SeatingBooking() {
             Seat {i + 1}
           </button>
         ))}
+      </div>
+      <div className="flex flex-row gap-4">
+        <div className="flex flex-col flex-grow">
+          <span>Selected: {ownedSeats?.length ?? 0}</span>
+        </div>
+        <div>
+          {ownedSeats && ownedSeats.length > 0 && (
+            <Link to="/booking/seat/confirm">Continue</Link>
+          )}
+        </div>
       </div>
     </div>
   );
