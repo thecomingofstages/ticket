@@ -14,7 +14,8 @@ type WebSocketConnectionState = { room: string } & (
 );
 export const useReservedSeats = ({ room }: { room: string }) => {
   // we use swr instead of plain state
-  // so that on prefetch we can fill initial data from the server
+  // so that on prefetch we can fill initial data from the server, if we want
+  // and the state can survive across renders!
   const { data, mutate } = useSWR<Record<string, SeatStatus>>(
     ["seats", room],
     () => {

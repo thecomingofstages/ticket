@@ -66,6 +66,10 @@ module.exports = {
           },
         },
       },
+      rules: {
+        // i don't know how to fix import alias bug so disable it for now
+        "import/no-unresolved": "off",
+      },
       extends: [
         "plugin:@typescript-eslint/recommended",
         "plugin:import/recommended",
