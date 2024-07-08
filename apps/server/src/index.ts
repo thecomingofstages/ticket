@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createToken, parseToken } from "./token";
+import { validateSignature } from "./line/validateSignature";
 
 type Bindings = {
   ENVIRONMENT: string;
@@ -13,6 +14,29 @@ const app = new Hono<{ Bindings: Bindings; Variables: { uid: string } }>();
 app.get("/", (c) => {
   return c.text("Hello Hono!");
 });
+
+app.post(
+  "/line-webhook",
+  async (c, next) => {
+    try {
+      const signature = c.req.header("x-line-signature");
+      if (!signature) throw new Error("Signature not found");
+      const body = await c.req.arrayBuffer();
+      if (!validateSignature(body, c.env.SESSION_SECRET, signature)) {
+        throw new Error("Invalid signature");
+      }
+      return await next();
+    } catch (err) {
+      console.error(err);
+      return new Response("Unauthorized", {
+        status: 401,
+      });
+    }
+  },
+  (c) => {
+    return c.json({ success: true });
+  }
+);
 
 app.use("/connect", (c, next) =>
   cors({

@@ -3,9 +3,11 @@
   "scripts": {
     "dev": "wrangler dev src/index.ts",
     "build": "wrangler deploy --dry-run --outdir build --minify src/index.ts",
-    "deploy": "wrangler deploy --minify src/index.ts"
+    "deploy": "wrangler deploy --minify src/index.ts",
+    "typegen": "wrangler types"
   },
   "dependencies": {
+    "@line/bot-sdk": "^9.2.2",
     "hono": "^4.4.11",
     "iron-session": "^8.0.2"
   },
