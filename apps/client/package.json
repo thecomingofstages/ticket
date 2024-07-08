@@ -16,9 +16,11 @@
     "@remix-run/cloudflare": "^2.10.2",
     "@remix-run/cloudflare-pages": "^2.10.2",
     "@remix-run/react": "^2.10.2",
+    "hono": "^4.4.11",
     "isbot": "^4.1.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "swr": "^2.2.5"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240512.0",
