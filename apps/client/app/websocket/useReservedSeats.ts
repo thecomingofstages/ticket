@@ -69,7 +69,8 @@ export const useReservedSeats = ({
       const url = client.ws[":token"].ticket[":room"].$url({
         param: { token, room },
       });
-      ws = new WebSocket(`ws://${url.host}${url.pathname}`);
+      const protocol = url.protocol === "https:" ? "wss" : "ws";
+      ws = new WebSocket(`${protocol}://${url.host}${url.pathname}`);
       ws.addEventListener("close", () => {
         next({ status: "closed" });
       });
