@@ -1,9 +1,16 @@
-import { Link, MetaFunction, useOutletContext } from "@remix-run/react";
+import { LoaderFunctionArgs, json } from "@remix-run/cloudflare";
+import {
+  Link,
+  MetaFunction,
+  useLoaderData,
+  useOutletContext,
+} from "@remix-run/react";
 import { Fragment } from "react/jsx-runtime";
 import { SeatPicker } from "~/components/SeatPicker";
 import { TimeRemaining } from "~/components/TimeRemaining";
 import BottomFooter from "~/components/layout/BottomFooter";
 import { StepHeader } from "~/components/layout/StepHeader";
+import { reserved1300, reserved1800 } from "~/pre-reserved";
 import { UseReservedSeats } from "~/websocket/useReservedSeats";
 
 const createSeats = (row: string, length: number, gapsAfter: number[]) => ({
@@ -19,7 +26,20 @@ export const meta: MetaFunction = () => [
   },
 ];
 
+export const loader = async ({ params }: LoaderFunctionArgs) => {
+  const { round } = params as { round: string };
+  if (round == "1300") {
+    return json({
+      reserved: reserved1300,
+    });
+  } else if (round == "1800") {
+    return json({ reserved: reserved1800 });
+  } else {
+    return json({ reserved: [] });
+  }
+};
 export default function SeatingBooking() {
+  const { reserved } = useLoaderData<typeof loader>();
   const ctx = useOutletContext<UseReservedSeats>();
   return (
     <>
@@ -40,10 +60,18 @@ export default function SeatingBooking() {
                 <SeatPicker.Seat
                   seat={seat}
                   status={
-                    ctx.loaded ? ctx.seats[seat] ?? "available" : undefined
+                    reserved.includes(seat)
+                      ? "reserved"
+                      : ctx.loaded
+                      ? ctx.ownedSeats.includes(seat)
+                        ? "selected"
+                        : ctx.seats[seat] ?? "available"
+                      : undefined
                   }
                   onClick={
-                    ctx.loaded ? () => ctx.updateSeat({ seat }) : undefined
+                    !reserved.includes(seat) && ctx.loaded
+                      ? () => ctx.updateSeat({ seat })
+                      : undefined
                   }
                 />
                 {gapsAfter[seat] && <SeatPicker.Gap>{row}</SeatPicker.Gap>}

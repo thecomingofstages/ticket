@@ -15,7 +15,7 @@ type SessionData = {
 
 const asClientEvent = (event: WSClientEvents) => JSON.stringify(event);
 
-const STORAGE_KEY = "completed-prod";
+const STORAGE_KEY = "completed-dev";
 export class TicketRoom extends DurableObject {
   sessions: Map<WebSocket, SessionData>;
 
@@ -29,6 +29,7 @@ export class TicketRoom extends DurableObject {
     this.reservedSeats = new Set();
     state.blockConcurrencyWhile(async () => {
       const reserved = await state.storage.get(STORAGE_KEY);
+      console.log(JSON.stringify(reserved));
       if (reserved) {
         Object.values(reserved).forEach(({ seats }) => {
           seats.forEach((seat) => {
@@ -244,19 +245,21 @@ export class TicketRoom extends DurableObject {
     let session = this.sessions.get(webSocket);
     if (!session) return;
     session.quit = true;
-    session.seats.forEach((seat) => {
-      this.reservedSeats.delete(seat);
-    });
-    this.broadcast(
-      asClientEvent({
-        type: "seatsChanged",
-        seats: session.seats,
-        status: "available",
-      }),
-      {
-        exclude: webSocket,
-      }
-    );
+    if (!session.persist) {
+      session.seats.forEach((seat) => {
+        this.reservedSeats.delete(seat);
+      });
+      this.broadcast(
+        asClientEvent({
+          type: "seatsChanged",
+          seats: session.seats,
+          status: "available",
+        }),
+        {
+          exclude: webSocket,
+        }
+      );
+    }
     this.sessions.delete(webSocket);
     await this.setNextExpirationAlarm();
   }
