@@ -7,13 +7,13 @@ import useSWRSubscription from "swr/subscription";
 export type UseReservedSeats = {
   round: string;
   updateSeat: (args: { seat: string }) => void;
+  persist: () => void;
 } & (
   | {
       loaded: true;
       seats: Record<string, SeatStatus>;
       ownedSeats: string[];
       expiration?: Date;
-      // persist: () => void;
     }
   | {
       loaded: false;
@@ -152,12 +152,12 @@ export const useReservedSeats = ({
     [wsData]
   );
 
-  // const persist = useCallback(() => {
-  //   if (!wsData) return;
-  //   wsData.ws.send(
-  //     JSON.stringify({ type: "persist" } satisfies WSServerEvents)
-  //   );
-  // }, [wsData]);
+  const persist = useCallback(() => {
+    if (!wsData) return;
+    wsData.ws.send(
+      JSON.stringify({ type: "persist" } satisfies WSServerEvents)
+    );
+  }, [wsData]);
 
   const ownedSeats = useMemo(() => {
     if (!data) return [];
@@ -175,6 +175,7 @@ export const useReservedSeats = ({
       round,
       loaded: false,
       updateSeat,
+      persist,
     };
   }
 
@@ -184,7 +185,7 @@ export const useReservedSeats = ({
     seats: data,
     ownedSeats,
     updateSeat,
-    // persist,
+    persist,
     expiration: wsData.expiration,
   };
 };

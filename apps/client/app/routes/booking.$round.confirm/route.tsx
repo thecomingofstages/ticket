@@ -60,7 +60,7 @@ export default function SeatingConfirm() {
 
   const onSubmit: SubmitHandler<ProfileFormSchema> = async (data) => {
     if (!ctx?.loaded) return;
-    // ctx.persist();
+    ctx.persist();
     if (import.meta.env.DEV) {
       console.log(data);
       return;

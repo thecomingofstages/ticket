@@ -15,6 +15,7 @@ type SessionData = {
 
 const asClientEvent = (event: WSClientEvents) => JSON.stringify(event);
 
+const STORAGE_KEY = "completed-dev";
 export class TicketRoom extends DurableObject {
   sessions: Map<WebSocket, SessionData>;
 
@@ -27,7 +28,7 @@ export class TicketRoom extends DurableObject {
     this.sessions = new Map();
     this.reservedSeats = new Set();
     state.blockConcurrencyWhile(async () => {
-      const reserved = await state.storage.get("completed");
+      const reserved = await state.storage.get(STORAGE_KEY);
       if (reserved) {
         Object.values(reserved).forEach(({ seats }) => {
           seats.forEach((seat) => {
@@ -182,18 +183,18 @@ export class TicketRoom extends DurableObject {
       const session = this.sessions.get(ws);
       if (!session) return this.sendError(ws, "No session found");
       session.persist = true;
-      const previous = (await this.state.storage.get("completed")) ?? {};
+      const previous = (await this.state.storage.get(STORAGE_KEY)) ?? {};
       session.seats.map((seet) => {
         this.reservedSeats.add(seet);
       });
-      await this.state.storage.put("completed", {
+      await this.state.storage.put(STORAGE_KEY, {
         ...previous,
         [session.transactionId]: {
           uid: session.uid,
           seats: session.seats,
         },
       });
-      console.log(await this.state.storage.get("completed"));
+      console.log(await this.state.storage.get(STORAGE_KEY));
     }
 
     if (data.type === "toggleSeat") {
