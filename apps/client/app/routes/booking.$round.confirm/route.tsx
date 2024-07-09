@@ -1,4 +1,10 @@
-import { MetaFunction, useNavigate, useOutletContext } from "@remix-run/react";
+import {
+  MetaFunction,
+  json,
+  useLoaderData,
+  useNavigate,
+  useOutletContext,
+} from "@remix-run/react";
 import { StepHeader } from "~/components/layout/StepHeader";
 import { UseReservedSeats } from "~/websocket/useReservedSeats";
 import { OwnedSeats } from "./OwnedSeats";
@@ -9,6 +15,7 @@ import { ProfileFormSchema } from "./schema";
 import { TimeRemaining } from "~/components/TimeRemaining";
 import { Button } from "~/components/ui/button";
 import { useEffect } from "react";
+import { liff } from "~/lib/liff";
 
 export const meta: MetaFunction = () => [
   {
@@ -16,12 +23,19 @@ export const meta: MetaFunction = () => [
   },
 ];
 
+export const clientLoader = async () => {
+  const { displayName, userId } = await liff.getProfile();
+  console.log(liff);
+  return json({ displayName, userId });
+};
+
 export default function SeatingConfirm() {
+  const { displayName } = useLoaderData<typeof clientLoader>();
   const ctx = useOutletContext<UseReservedSeats>();
   const form = useForm<ProfileFormSchema>({
     defaultValues: {
       department: "",
-      lineDisplayName: "",
+      lineDisplayName: displayName,
     },
   });
 
@@ -36,6 +50,11 @@ export default function SeatingConfirm() {
   }, [ctx, navigate]);
 
   if (!ctx.loaded) return null;
+
+  const onSubmit = () => {
+    console.log("OK");
+  };
+  console.log(form);
 
   return (
     <>
@@ -65,7 +84,10 @@ export default function SeatingConfirm() {
         </div>
         <div className="flex flex-col items-end justify-center gap-2 flex-shrink-0">
           {ctx.loaded && (
-            <Button className={`px-4 py-2 bg-white text-black rounded-lg`}>
+            <Button
+              onClick={form.handleSubmit(onSubmit)}
+              className={`px-4 py-2 bg-white text-black rounded-lg`}
+            >
               ยืนยันและชำระเงิน
             </Button>
           )}
