@@ -1,6 +1,7 @@
-import { Link, useOutletContext } from "@remix-run/react";
+import { Link, MetaFunction, useOutletContext } from "@remix-run/react";
 import { Fragment } from "react/jsx-runtime";
 import { SeatPicker } from "~/components/SeatPicker";
+import { TimeRemaining } from "~/components/TimeRemaining";
 import BottomFooter from "~/components/layout/BottomFooter";
 import { StepHeader } from "~/components/layout/StepHeader";
 import { UseReservedSeats } from "~/websocket/useReservedSeats";
@@ -11,6 +12,12 @@ const createSeats = (row: string, length: number, gapsAfter: number[]) => ({
   gapsAfter: Object.fromEntries(gapsAfter.map((x) => [`${row}${x}`, true])),
 });
 const seatsRow = [createSeats("B", 27, [6, 21]), createSeats("A", 25, [5, 20])];
+
+export const meta: MetaFunction = () => [
+  {
+    title: "เลือกที่นั่ง : TCOS Ticket System",
+  },
+];
 
 export default function SeatingBooking() {
   const ctx = useOutletContext<UseReservedSeats>();
@@ -47,7 +54,7 @@ export default function SeatingBooking() {
         <SeatPicker.Stage />
       </SeatPicker>
       <BottomFooter className="gap-4">
-        <div className="flex flex-col flex-grow gap-1">
+        <div className="flex flex-col flex-grow justify-center gap-1">
           <span>
             <b>เลือกแล้ว</b> {ctx.loaded ? ctx.ownedSeats.length : 0} ที่นั่ง
             {ctx.loaded && ctx.ownedSeats.length >= 4 && (
@@ -58,17 +65,20 @@ export default function SeatingBooking() {
             ที่นั่ง {ctx.loaded && ctx.ownedSeats.join(", ")}
           </span>
         </div>
-        <div className="flex items-center">
+        <div className="flex flex-col items-end justify-center gap-2">
           {ctx.loaded && (
             <Link
               to={`/booking/${ctx.round}/confirm`}
-              className={`px-4 py-2 bg-white text-black rounded-lg ${
-                ctx.ownedSeats.length > 0 ? "opacity-100" : "opacity-0"
-              } duration-150`}
+              className={`px-4 py-2  rounded-lg ${
+                ctx.ownedSeats.length > 0
+                  ? "bg-white text-black"
+                  : "bg-zinc-800 text-zinc-600"
+              } transition-colors duration-150`}
             >
               ดำเนินการต่อ
             </Link>
           )}
+          <TimeRemaining expiration={ctx.loaded ? ctx.expiration : undefined} />
         </div>
       </BottomFooter>
     </>

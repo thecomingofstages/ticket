@@ -1,4 +1,6 @@
 export const departments = [
+  "โปรดิวเซอร์ (Producer)",
+  "นักแสดงและนักเต้น (Actors)",
   "ฝ่ายกำกับเวที (Stage)",
   "ฝ่ายฉากและพร็อพ (Props/Set)",
   "ฝ่ายแสง (Light)",

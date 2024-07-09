@@ -1,5 +1,12 @@
+import { MetaFunction } from "@remix-run/cloudflare";
 import { Link } from "@remix-run/react";
 import { StepHeader } from "~/components/layout/StepHeader";
+
+export const meta: MetaFunction = () => [
+  {
+    title: "เลือกรอบการแสดง : TCOS Ticket System",
+  },
+];
 
 const rounds = [
   {

@@ -1,4 +1,4 @@
-import { Link, useOutletContext } from "@remix-run/react";
+import { MetaFunction, useNavigate, useOutletContext } from "@remix-run/react";
 import { StepHeader } from "~/components/layout/StepHeader";
 import { UseReservedSeats } from "~/websocket/useReservedSeats";
 import { OwnedSeats } from "./OwnedSeats";
@@ -6,21 +6,42 @@ import BottomFooter from "~/components/layout/BottomFooter";
 import { ProfileForm } from "./Form";
 import { useForm } from "react-hook-form";
 import { ProfileFormSchema } from "./schema";
+import { TimeRemaining } from "~/components/TimeRemaining";
+import { Button } from "~/components/ui/button";
+import { useEffect } from "react";
+
+export const meta: MetaFunction = () => [
+  {
+    title: "ยืนยันคำสั่งซื้อ : TCOS Ticket System",
+  },
+];
 
 export default function SeatingConfirm() {
   const ctx = useOutletContext<UseReservedSeats>();
   const form = useForm<ProfileFormSchema>({
     defaultValues: {
       department: "",
-      lineDisplayName: "sz.",
+      lineDisplayName: "",
     },
   });
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (ctx.loaded && ctx.ownedSeats.length === 0) {
+      navigate(`/booking/${ctx.round}`, {
+        replace: true,
+      });
+    }
+  }, [ctx, navigate]);
+
   if (!ctx.loaded) return null;
+
   return (
     <>
       <StepHeader
         no={3}
-        title={"รายละเอียดคำสั่งซื้อ"}
+        title={"ยืนยันคำสั่งซื้อ"}
         description="กรุณายืนยันข้อมูลที่นั่งที่เลือกไว้"
         backUrl={`/booking/${ctx.round}`}
       />
@@ -36,23 +57,19 @@ export default function SeatingConfirm() {
         </div>
       </div>
       <BottomFooter className="gap-4">
-        <div className="flex flex-col flex-grow gap-1 leading-5">
+        <div className="flex flex-col flex-grow justify-center gap-1 leading-5">
           <b>ยืนยันและไปยังขั้นตอนชำระเงิน</b>
           <span className="text-xs text-zinc-400">
             โปรดชำระเงินภายใน 10 นาทีหลังจากยืนยันคำสั่งซื้อ
           </span>
         </div>
-        <div className="flex items-center flex-shrink-0">
+        <div className="flex flex-col items-end justify-center gap-2 flex-shrink-0">
           {ctx.loaded && (
-            <Link
-              to={`/booking/${ctx.round}/confirm`}
-              className={`px-4 py-2 bg-white text-black rounded-lg ${
-                ctx.ownedSeats.length > 0 ? "opacity-100" : "opacity-0"
-              } duration-150`}
-            >
+            <Button className={`px-4 py-2 bg-white text-black rounded-lg`}>
               ยืนยันและชำระเงิน
-            </Link>
+            </Button>
           )}
+          <TimeRemaining expiration={ctx.loaded ? ctx.expiration : undefined} />
         </div>
       </BottomFooter>
     </>

@@ -23,6 +23,12 @@ interface WSClientSeatsChangedEvent extends WSEvent {
   seats: string[];
 }
 
+interface WSClientExpirationEvent extends WSEvent {
+  type: "expiration";
+  expiration: number;
+}
+
 export type WSClientEvents =
   | WSClientSeatChangedEvent
-  | WSClientSeatsChangedEvent;
+  | WSClientSeatsChangedEvent
+  | WSClientExpirationEvent;

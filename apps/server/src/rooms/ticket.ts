@@ -1,7 +1,12 @@
 import { DurableObject } from "cloudflare:workers";
 import { WSClientEvents, WSServerEvents } from "../events";
+import { ulid } from "../lib/ulidx";
+import { add } from "date-fns";
 
 type SessionData = {
+  createdAt: number;
+  expiresAt: number | null;
+  transactionId: string;
   uid: string;
   seats: string[];
   quit?: boolean;
@@ -38,19 +43,67 @@ export class TicketRoom extends DurableObject {
       });
     }
     await this.websocketInit(pair[1], uid);
+    await this.setNextExpirationAlarm();
     return new Response(null, {
       status: 101,
       webSocket: pair[0],
     });
   }
 
-  async websocketInit(webSocket: WebSocket, uid: string) {
-    this.state.acceptWebSocket(webSocket);
+  async alarm(): Promise<void> {
+    console.log("Alarmed!");
+    // check for any expired sessions
+    const now = Date.now();
+    for (const [ws, session] of this.sessions.entries()) {
+      if (session.expiresAt && session.expiresAt < now) {
+        session.quit = true;
+        ws.close(3008, "Session expired");
+      }
+    }
+    await this.setNextExpirationAlarm();
+  }
+
+  initSession(webSocket: WebSocket, uid: string) {
+    const now = Date.now();
+    // draft payments will be expired in 5 minutes
+    const expires = add(now, { minutes: 5 });
     const session: SessionData = {
+      createdAt: now,
+      expiresAt: expires.valueOf(),
       uid,
+      transactionId: ulid(now),
       seats: [],
     };
     this.setSessionData(webSocket, session);
+    return session;
+  }
+
+  async setNextExpirationAlarm() {
+    let nextExpiration = Infinity;
+    for (const session of this.sessions.values()) {
+      if (session.quit) continue;
+      if (session.expiresAt && session.expiresAt < nextExpiration) {
+        nextExpiration = session.expiresAt;
+      }
+    }
+    if (nextExpiration === Infinity) return;
+    const currentAlarm = await this.state.storage.getAlarm();
+    if (currentAlarm && currentAlarm < nextExpiration) return;
+    console.log("nextExpiration", nextExpiration);
+    return this.state.storage.setAlarm(nextExpiration);
+  }
+
+  async websocketInit(webSocket: WebSocket, uid: string) {
+    this.state.acceptWebSocket(webSocket);
+    const session = this.initSession(webSocket, uid);
+    if (session.expiresAt) {
+      webSocket.send(
+        asClientEvent({
+          type: "expiration",
+          expiration: session.expiresAt,
+        })
+      );
+    }
     if (this.reservedSeats.size > 0) {
       webSocket.send(
         asClientEvent({
@@ -89,10 +142,8 @@ export class TicketRoom extends DurableObject {
   ) {
     let seatsBecameAvailable: string[] = [];
     this.sessions.forEach((session, webSocket) => {
-      console.log("Broadcast message to", session.uid);
       if (exclude && exclude === webSocket) return;
       try {
-        console.log("Message", message);
         webSocket.send(message);
       } catch (e) {
         session.quit = true;
@@ -176,7 +227,7 @@ export class TicketRoom extends DurableObject {
       }
     );
     this.sessions.delete(webSocket);
-    // todo: notify remaining clients for new available seats
+    await this.setNextExpirationAlarm();
   }
 
   webSocketClose(ws: WebSocket): void | Promise<void> {

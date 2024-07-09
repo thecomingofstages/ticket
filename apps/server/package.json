@@ -8,8 +8,10 @@
   },
   "dependencies": {
     "@line/bot-sdk": "^9.2.2",
+    "date-fns": "^3.6.0",
     "hono": "^4.4.11",
-    "iron-session": "^8.0.2"
+    "iron-session": "^8.0.2",
+    "ulidx": "^2.3.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240529.0",

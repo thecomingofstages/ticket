@@ -12,6 +12,7 @@ export type UseReservedSeats = {
       loaded: true;
       seats: Record<string, SeatStatus>;
       ownedSeats: string[];
+      expiration?: Date;
     }
   | {
       loaded: false;
@@ -57,9 +58,10 @@ export const useReservedSeats = ({
   // holds the current websocket connection state
   // still use swr so that we can benefit from
   // automatic cleanup when deps changed
-  const { data: ws, error: wsError } = useSWRSubscription<
-    WebSocket,
-    { status: "closed" } | { status: "error"; error: Event },
+  const { data: wsData, error: wsError } = useSWRSubscription<
+    { ws: WebSocket; expiration?: Date },
+    | { status: "closed" }
+    | { status: "error"; error: { code: number; reason?: string } },
     [string, "ws", string] | null
   >(
     connectToken ? [round, "ws", connectToken] : null,
@@ -71,21 +73,43 @@ export const useReservedSeats = ({
       });
       const protocol = url.protocol === "https:" ? "wss" : "ws";
       ws = new WebSocket(`${protocol}://${url.host}${url.pathname}`);
-      ws.addEventListener("close", () => {
-        next({ status: "closed" });
+      ws.addEventListener("close", (event) => {
+        const ev = event as CloseEvent;
+        if (ev.code !== 1000) {
+          next({
+            status: "error",
+            error: { code: ev.code, reason: ev.reason },
+          });
+          mutate({}, false);
+        } else {
+          next({ status: "closed" });
+        }
       });
       ws.addEventListener("error", (event) => {
-        next({ status: "error", error: event });
+        const ev = event as CloseEvent;
+        next({
+          status: "error",
+          error: {
+            code: ev.code,
+            reason: ev.reason,
+          },
+        });
+        mutate({}, false);
       });
       ws.addEventListener("open", () => {
-        next(undefined, ws!);
+        next(undefined, { ws: ws! });
         // ready! mount the value!
         mutate();
       });
       ws.addEventListener("message", (event) => {
         const message = JSON.parse(event.data) as WSClientEvents;
         console.log("message", message);
-        if (message.type === "seatChanged") {
+        if (message.type === "expiration") {
+          next(undefined, {
+            ws: ws!,
+            expiration: new Date(message.expiration),
+          });
+        } else if (message.type === "seatChanged") {
           mutate((seats) => {
             return {
               ...(seats ?? {}),
@@ -119,12 +143,12 @@ export const useReservedSeats = ({
 
   const updateSeat = useCallback(
     ({ seat }: { seat: string }) => {
-      if (!ws) return;
-      ws.send(
+      if (!wsData) return;
+      wsData.ws.send(
         JSON.stringify({ type: "toggleSeat", seat } satisfies WSServerEvents)
       );
     },
-    [ws]
+    [wsData]
   );
 
   const ownedSeats = useMemo(() => {
@@ -138,7 +162,7 @@ export const useReservedSeats = ({
     return seats;
   }, [data]);
 
-  if (!ws || !data) {
+  if (!wsData || !data) {
     return {
       round,
       loaded: false,
@@ -152,5 +176,6 @@ export const useReservedSeats = ({
     seats: data,
     ownedSeats,
     updateSeat,
+    expiration: wsData.expiration,
   };
 };

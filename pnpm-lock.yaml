@@ -49,6 +49,9 @@ importers:
       cmdk:
         specifier: ^1.0.0
         version: 1.0.0(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      date-fns:
+        specifier: ^3.6.0
+        version: 3.6.0
       hono:
         specifier: ^4.4.11
         version: 4.4.11
@@ -143,12 +146,18 @@ importers:
       '@line/bot-sdk':
         specifier: ^9.2.2
         version: 9.2.2
+      date-fns:
+        specifier: ^3.6.0
+        version: 3.6.0
       hono:
         specifier: ^4.4.11
         version: 4.4.11
       iron-session:
         specifier: ^8.0.2
         version: 8.0.2
+      ulidx:
+        specifier: ^2.3.0
+        version: 2.3.0
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20240529.0
@@ -3005,6 +3014,9 @@ packages:
     resolution: {integrity: sha512-MbjN408fEndfiQXbFQ1vnd+1NoLDsnQW41410oQBXiyXDMYH5z505juWa4KUE1LqxRC7DgOgZDbKLxHIwm27hA==}
     engines: {node: '>=0.10'}
 
+  layerr@2.1.0:
+    resolution: {integrity: sha512-xDD9suWxfBYeXgqffRVH/Wqh+mqZrQcqPRn0I0ijl7iJQ7vu8gMGPt1Qop59pEW/jaIDNUN7+PX1Qk40+vuflg==}
+
   levn@0.4.1:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
@@ -4239,6 +4251,10 @@ packages:
 
   ufo@1.5.3:
     resolution: {integrity: sha512-Y7HYmWaFwPUmkoQCUIAYpKqkOf+SbVj/2fJJZ4RJMCfZp0rTGwRbzQD+HghfnhKOjL9E01okqz+ncJskGYfBNw==}
+
+  ulidx@2.3.0:
+    resolution: {integrity: sha512-36piWNqcdp9hKlQewyeehCaALy4lyx3FodsCxHuV6i0YdexSkjDOubwxEVr2yi4kh62L/0MgyrxqG4K+qtovnw==}
+    engines: {node: '>=16'}
 
   unbox-primitive@1.0.2:
     resolution: {integrity: sha512-61pPlCD9h51VoreyJ0BReideM3MDKMKnh6+V9L08331ipq6Q8OFXZYiqP6n/tbHx4s5I9uRhcye6BrbkizkBDw==}
@@ -7611,6 +7627,8 @@ snapshots:
     dependencies:
       language-subtag-registry: 0.3.23
 
+  layerr@2.1.0: {}
+
   levn@0.4.1:
     dependencies:
       prelude-ls: 1.2.1
@@ -9140,6 +9158,10 @@ snapshots:
   typescript@5.5.3: {}
 
   ufo@1.5.3: {}
+
+  ulidx@2.3.0:
+    dependencies:
+      layerr: 2.1.0
 
   unbox-primitive@1.0.2:
     dependencies:
