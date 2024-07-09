@@ -76,8 +76,7 @@ export default function SeatingConfirm() {
 ที่นั่ง: ${ctx.ownedSeats.join(", ")}
 เวลา: ${new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}
 
-โปรดรอการยืนยันจากแชทเพื่อดำเนินการชำระเงินต่อไป
-`,
+โปรดรอการยืนยันจากแชทเพื่อดำเนินการชำระเงินต่อไป`,
       },
     ]);
     liff.closeWindow();
