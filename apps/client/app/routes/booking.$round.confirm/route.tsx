@@ -31,7 +31,7 @@ export const clientLoader = async () => {
       userId: "test-user",
     });
   const { displayName, userId } = await liff.getProfile();
-  console.log(liff);
+  // console.log(liff);
   return json({ displayName, userId });
 };
 
@@ -59,8 +59,8 @@ export default function SeatingConfirm() {
   if (!ctx.loaded) return null;
 
   const onSubmit: SubmitHandler<ProfileFormSchema> = async (data) => {
-    if (!ctx.loaded) return;
-    ctx.persist();
+    if (!ctx?.loaded) return;
+    // ctx.persist();
     if (import.meta.env.DEV) {
       console.log(data);
       return;

@@ -13,7 +13,7 @@ export type UseReservedSeats = {
       seats: Record<string, SeatStatus>;
       ownedSeats: string[];
       expiration?: Date;
-      persist: () => void;
+      // persist: () => void;
     }
   | {
       loaded: false;
@@ -152,12 +152,12 @@ export const useReservedSeats = ({
     [wsData]
   );
 
-  const persist = useCallback(() => {
-    if (!wsData) return;
-    wsData.ws.send(
-      JSON.stringify({ type: "persist" } satisfies WSServerEvents)
-    );
-  }, [wsData]);
+  // const persist = useCallback(() => {
+  //   if (!wsData) return;
+  //   wsData.ws.send(
+  //     JSON.stringify({ type: "persist" } satisfies WSServerEvents)
+  //   );
+  // }, [wsData]);
 
   const ownedSeats = useMemo(() => {
     if (!data) return [];
@@ -184,7 +184,7 @@ export const useReservedSeats = ({
     seats: data,
     ownedSeats,
     updateSeat,
-    persist,
+    // persist,
     expiration: wsData.expiration,
   };
 };
