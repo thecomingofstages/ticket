@@ -6,9 +6,9 @@ export default function RoundBookingLayout() {
   const { round } = useParams() as { round: string };
   const ctx = useReservedSeats({ round });
   return (
-    <div className="flex flex-col h-screen justify-center">
+    <>
       {!ctx.loaded && <Spinner />}
       <Outlet context={ctx} />
-    </div>
+    </>
   );
 }

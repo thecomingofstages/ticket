@@ -16,10 +16,16 @@ export default function SeatingBooking() {
   const ctx = useOutletContext<UseReservedSeats>();
   return (
     <>
-      <StepHeader no={1}></StepHeader>
+      <StepHeader
+        no={2}
+        title={"เลือกที่นั่ง"}
+        description="เลื่อนผังและกดเลือกที่นั่งที่ต้องการ"
+        backUrl="/booking"
+      />
       <SeatPicker
         initialScrollToSeat={(ctx.loaded && ctx.ownedSeats?.[0]) || undefined}
       >
+        <SeatPicker.PriceLabel price={555} />
         {seatsRow.map(({ row, seats, gapsAfter }) => (
           <SeatPicker.Row key={row}>
             {seats.map((seat) => (

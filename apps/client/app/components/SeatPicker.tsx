@@ -1,6 +1,6 @@
 import { cn } from "~/lib/utils";
 import type { SeatStatus } from "../../../server/src/events";
-import { Check } from "lucide-react";
+import { Ban, Check } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 type ChildrenProps = {
@@ -76,7 +76,7 @@ const SeatPickerSeat = ({
         "h-14 w-14",
         status === "available" && "bg-purple-800",
         (status === "selected" || !status) && "bg-purple-400",
-        status === "reserved" && "bg-red-600",
+        status === "reserved" && "bg-red-400",
         "transition-colors duration-100 rounded-full relative"
       )}
     >
@@ -88,9 +88,26 @@ const SeatPickerSeat = ({
           {status === "selected" && (
             <Check strokeWidth={4} className="h-6 w-6 text-purple-900" />
           )}
+          {status === "reserved" && (
+            <Ban strokeWidth={4} className="h-6 w-6 text-red-800" />
+          )}
         </div>
       )}
     </button>
+  );
+};
+
+const SeatPickerPriceLabel = ({ price }: { price: number }) => {
+  return (
+    <div className="p-6 z-10">
+      <div className="bg-zinc-800 px-6 py-4 rounded-lg flex items-center gap-4">
+        <span className="font-medium">ราคาบัตร</span>
+        <div className="flex flex-row gap-2 text-sm text-zinc-300">
+          <div className="h-4 w-4 bg-purple-800 rounded-full" />
+          {price} บาท
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -111,6 +128,7 @@ const SeatPickerGap = ({ children }: { children: React.ReactNode }) => {
 SeatPicker.Stage = SeatPickerStage;
 SeatPicker.Row = SeatPickerRow;
 SeatPicker.Seat = SeatPickerSeat;
+SeatPicker.PriceLabel = SeatPickerPriceLabel;
 SeatPicker.Gap = SeatPickerGap;
 
 export { SeatPicker };
