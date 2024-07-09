@@ -10,6 +10,7 @@ type SessionData = {
   uid: string;
   seats: string[];
   quit?: boolean;
+  persist?: boolean;
 };
 
 const asClientEvent = (event: WSClientEvents) => JSON.stringify(event);
@@ -25,6 +26,16 @@ export class TicketRoom extends DurableObject {
     this.state = state;
     this.sessions = new Map();
     this.reservedSeats = new Set();
+    state.blockConcurrencyWhile(async () => {
+      const reserved = await state.storage.get("completed");
+      if (reserved) {
+        Object.values(reserved).forEach(({ seats }) => {
+          seats.forEach((seat) => {
+            this.reservedSeats.add(seat);
+          });
+        });
+      }
+    });
     state.getWebSockets().forEach((ws) => {
       const data = ws.deserializeAttachment() as SessionData;
       this.sessions.set(ws, data);
@@ -51,7 +62,6 @@ export class TicketRoom extends DurableObject {
   }
 
   async alarm(): Promise<void> {
-    console.log("Alarmed!");
     // check for any expired sessions
     const now = Date.now();
     for (const [ws, session] of this.sessions.entries()) {
@@ -147,7 +157,9 @@ export class TicketRoom extends DurableObject {
         webSocket.send(message);
       } catch (e) {
         session.quit = true;
-        seatsBecameAvailable = seatsBecameAvailable.concat(session.seats);
+        if (!session.persist) {
+          seatsBecameAvailable = seatsBecameAvailable.concat(session.seats);
+        }
         this.sessions.delete(webSocket);
       }
     });
@@ -166,6 +178,24 @@ export class TicketRoom extends DurableObject {
   async webSocketMessage(ws: WebSocket, message: ArrayBuffer | string) {
     if (typeof message !== "string") return;
     const data = JSON.parse(message) as WSServerEvents;
+    if (data.type === "persist") {
+      const session = this.sessions.get(ws);
+      if (!session) return this.sendError(ws, "No session found");
+      session.persist = true;
+      const previous = (await this.state.storage.get("completed")) ?? {};
+      session.seats.map((seet) => {
+        this.reservedSeats.add(seet);
+      });
+      await this.state.storage.put("completed", {
+        ...previous,
+        [session.transactionId]: {
+          uid: session.uid,
+          seats: session.seats,
+        },
+      });
+      console.log(await this.state.storage.get("completed"));
+    }
+
     if (data.type === "toggleSeat") {
       const currentSession = this.sessions.get(ws);
       if (!currentSession) return this.sendError(ws, "No session found");

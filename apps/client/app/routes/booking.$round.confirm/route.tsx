@@ -10,12 +10,13 @@ import { UseReservedSeats } from "~/websocket/useReservedSeats";
 import { OwnedSeats } from "./OwnedSeats";
 import BottomFooter from "~/components/layout/BottomFooter";
 import { ProfileForm } from "./Form";
-import { useForm } from "react-hook-form";
-import { ProfileFormSchema } from "./schema";
+import { SubmitHandler, useForm } from "react-hook-form";
+import { ProfileFormSchema, profileForm } from "./schema";
 import { TimeRemaining } from "~/components/TimeRemaining";
 import { Button } from "~/components/ui/button";
 import { useEffect } from "react";
 import { liff } from "~/lib/liff";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 export const meta: MetaFunction = () => [
   {
@@ -24,6 +25,11 @@ export const meta: MetaFunction = () => [
 ];
 
 export const clientLoader = async () => {
+  if (import.meta.env.DEV)
+    return json({
+      displayName: "Test User",
+      userId: "test-user",
+    });
   const { displayName, userId } = await liff.getProfile();
   console.log(liff);
   return json({ displayName, userId });
@@ -33,6 +39,7 @@ export default function SeatingConfirm() {
   const { displayName } = useLoaderData<typeof clientLoader>();
   const ctx = useOutletContext<UseReservedSeats>();
   const form = useForm<ProfileFormSchema>({
+    resolver: zodResolver(profileForm),
     defaultValues: {
       department: "",
       lineDisplayName: displayName,
@@ -51,10 +58,30 @@ export default function SeatingConfirm() {
 
   if (!ctx.loaded) return null;
 
-  const onSubmit = () => {
-    console.log("OK");
+  const onSubmit: SubmitHandler<ProfileFormSchema> = async (data) => {
+    if (!ctx.loaded) return;
+    ctx.persist();
+    if (import.meta.env.DEV) {
+      console.log(data);
+      return;
+    }
+    await liff.sendMessages([
+      {
+        type: "text",
+        text: `[ข้อความอัตโนมัติ] ยืนยันการจองที่นั่งรอบ ${ctx.round}
+ชื่อ: ${data.name} ${data.surname}
+อีเมล: ${data.email}
+เบอร์โทร: ${data.phone}
+ฝ่าย: ${data.department}
+ที่นั่ง: ${ctx.ownedSeats.join(", ")}
+เวลา: ${new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}
+
+โปรดรอการยืนยันจากแชทเพื่อดำเนินการชำระเงินต่อไป
+`,
+      },
+    ]);
+    liff.closeWindow();
   };
-  console.log(form);
 
   return (
     <>

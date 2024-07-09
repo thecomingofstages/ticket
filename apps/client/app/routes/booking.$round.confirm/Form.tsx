@@ -1,4 +1,4 @@
-import { UseFormReturn } from "react-hook-form";
+import { SubmitHandler, UseFormReturn } from "react-hook-form";
 import {
   Form,
   FormControl,
@@ -18,7 +18,7 @@ export function ProfileForm({
 }) {
   return (
     <Form {...form}>
-      <form onSubmit={(e) => e.preventDefault()} className="space-y-3">
+      <form className="space-y-3">
         <FormField
           control={form.control}
           name="lineDisplayName"

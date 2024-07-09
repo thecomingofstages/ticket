@@ -7,7 +7,11 @@ interface WSServerToggleSeatEvent extends WSEvent {
   seat: string;
 }
 
-export type WSServerEvents = WSServerToggleSeatEvent;
+interface WSServerPersistEvent extends WSEvent {
+  type: "persist";
+}
+
+export type WSServerEvents = WSServerToggleSeatEvent | WSServerPersistEvent;
 
 export type SeatStatus = "selected" | "reserved" | "available";
 
