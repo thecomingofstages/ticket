@@ -16,7 +16,7 @@ export type SessionData = {
 
 const asClientEvent = (event: WSClientEvents) => JSON.stringify(event);
 
-const STORAGE_KEY = "completed-dev";
+const STORAGE_KEY = "completed-prod-pre-round2";
 
 export class TicketRoom extends DurableObject {
   sessions: Map<WebSocket, SessionData>;
