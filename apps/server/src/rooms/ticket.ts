@@ -2,8 +2,9 @@ import { DurableObject } from "cloudflare:workers";
 import { WSClientEvents, WSServerEvents } from "../events";
 import { ulid } from "../lib/ulidx";
 import { add } from "date-fns";
+import { CompleteSessionStorage, adminTicket } from "../adminTicket";
 
-type SessionData = {
+export type SessionData = {
   createdAt: number;
   expiresAt: number | null;
   transactionId: string;
@@ -16,11 +17,13 @@ type SessionData = {
 const asClientEvent = (event: WSClientEvents) => JSON.stringify(event);
 
 const STORAGE_KEY = "completed-dev";
+
 export class TicketRoom extends DurableObject {
   sessions: Map<WebSocket, SessionData>;
 
   private state: DurableObjectState;
   private reservedSeats: Set<string>;
+
   //   private storage: DurableObjectStorage;
   constructor(state: DurableObjectState, env: {}) {
     super(state, env);
@@ -28,8 +31,9 @@ export class TicketRoom extends DurableObject {
     this.sessions = new Map();
     this.reservedSeats = new Set();
     state.blockConcurrencyWhile(async () => {
-      const reserved = await state.storage.get(STORAGE_KEY);
-      console.log(JSON.stringify(reserved));
+      const reserved = await state.storage.get<CompleteSessionStorage>(
+        STORAGE_KEY
+      );
       if (reserved) {
         Object.values(reserved).forEach(({ seats }) => {
           seats.forEach((seat) => {
@@ -48,6 +52,13 @@ export class TicketRoom extends DurableObject {
   }
 
   async fetch(request: Request) {
+    const url = new URL(request.url);
+    if (url.pathname.includes("/admin")) {
+      return adminTicket.fetch(request, {
+        STATE: this.state,
+        STORAGE_KEY,
+      });
+    }
     const pair = new WebSocketPair();
     const uid = request.headers.get("X-UID");
     if (!uid) {
@@ -188,11 +199,13 @@ export class TicketRoom extends DurableObject {
       session.seats.map((seet) => {
         this.reservedSeats.add(seet);
       });
-      await this.state.storage.put(STORAGE_KEY, {
+      await this.state.storage.put<CompleteSessionStorage>(STORAGE_KEY, {
         ...previous,
         [session.transactionId]: {
           uid: session.uid,
           seats: session.seats,
+          createdAt: session.createdAt,
+          submittedAt: Date.now(),
         },
       });
       console.log(await this.state.storage.get(STORAGE_KEY));

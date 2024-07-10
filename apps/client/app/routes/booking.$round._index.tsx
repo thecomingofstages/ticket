@@ -38,6 +38,7 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
     return json({ reserved: [] });
   }
 };
+
 export default function SeatingBooking() {
   const { reserved } = useLoaderData<typeof loader>();
   const ctx = useOutletContext<UseReservedSeats>();

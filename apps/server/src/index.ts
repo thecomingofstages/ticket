@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { createToken, parseToken } from "./token";
 import { validateSignature } from "./line/validateSignature";
 import { TicketRoom } from "./rooms/ticket";
+import { bearerAuth } from "hono/bearer-auth";
 
 type Bindings = {
   ENVIRONMENT: string;
@@ -37,6 +38,20 @@ app.post(
   },
   (c) => {
     return c.json({ success: true });
+  }
+);
+
+app.on(
+  ["GET", "PUT", "POST", "DELETE"],
+  ["/admin/:room", "/admin/:room/*"],
+  (c, next) => bearerAuth({ token: c.env.SESSION_SECRET })(c, next),
+  (c) => {
+    const room = c.req.param("room");
+    if (!room) return new Response("Room not found", { status: 404 });
+    console.log("Enter admin zone.");
+    const id = c.env.TICKET.idFromName(room);
+    const stub = c.env.TICKET.get(id);
+    return stub.fetch(c.req.raw);
   }
 );
 
