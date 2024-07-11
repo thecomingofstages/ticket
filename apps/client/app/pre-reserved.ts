@@ -51,7 +51,6 @@ export const reserved1300 = [
 ];
 
 export const reserved1800 = [
-  "A1",
   "A10",
   "A11",
   "A12",
