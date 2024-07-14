@@ -13,7 +13,7 @@ export const createToken = (token: TokenData, password: string) => {
 
 export const parseToken = (token: string, password: string) => {
   return unsealData<TokenData>(token, {
-    password: "AqqoJrgHHqXb6M5JB8kRoZJvQa7iVZi9",
+    password,
     ttl: 2 * 60,
   });
 };
