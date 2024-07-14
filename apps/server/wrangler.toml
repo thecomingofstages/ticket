@@ -23,10 +23,10 @@ new_classes = ["TicketRoom"]
 # binding = "MY_BUCKET"
 # bucket_name = "my-bucket"
 
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "my-database"
-# database_id = ""
+[[d1_databases]]
+binding = "DB"
+database_name = "ticket-db"
+database_id = "8090f7a2-1f16-4795-a7d9-2f2c7d904b8e"
 
 # [ai]
 # binding = "AI"

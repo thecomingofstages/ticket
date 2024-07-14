@@ -4,18 +4,24 @@ import { createToken, parseToken } from "./token";
 import { validateSignature } from "./line/validateSignature";
 import { TicketRoom } from "./rooms/ticket";
 import { bearerAuth } from "hono/bearer-auth";
+import { DrizzleD1Database, drizzle } from "drizzle-orm/d1";
 
-type Bindings = {
-  ENVIRONMENT: string;
-  SESSION_SECRET: string;
-  TICKET: DurableObjectNamespace<TicketRoom>;
-  CORS_ALLOW_ORIGIN: string;
+type Bindings = Env & Record<string, unknown>;
+
+type Variables = {
+  uid: string;
+  db: DrizzleD1Database;
 };
 
-const app = new Hono<{ Bindings: Bindings; Variables: { uid: string } }>();
+const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-app.get("/", (c) => {
-  return c.text("Online");
+app.get("/", async (c) => {
+  return c.json({ success: true });
+});
+
+app.use("/api/*", async (c, next) => {
+  c.set("db", drizzle(c.env.DB));
+  await next();
 });
 
 app.post(
