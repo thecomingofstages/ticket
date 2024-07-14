@@ -15,6 +15,13 @@
       "when": 1720922538014,
       "tag": "0001_clever_moondragon",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1720968689109,
+      "tag": "0002_shallow_cyclops",
+      "breakpoints": true
     }
   ]
 }

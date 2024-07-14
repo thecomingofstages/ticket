@@ -1,5 +1,6 @@
 import { Link } from "@remix-run/react";
 import { ArrowLeft } from "lucide-react";
+import { Header } from "./Header";
 
 export const StepHeader = ({
   no,
@@ -13,7 +14,7 @@ export const StepHeader = ({
   backUrl?: string;
 }) => {
   return (
-    <header className="flex flex-row gap-6 bg-zinc-900 border-zinc-600 border-b px-5 py-4">
+    <Header>
       {backUrl && (
         <Link
           to={backUrl}
@@ -30,6 +31,6 @@ export const StepHeader = ({
         <b className="text-lg">{title}</b>
         <p className="text-zinc-300 text-sm">{description}</p>
       </div>
-    </header>
+    </Header>
   );
 };
