@@ -34,10 +34,14 @@ export const transactions = sqliteTable("transactions", {
     .notNull()
     .references(() => users.uid),
   round: integer("round").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-  submittedAt: integer("submitted_at", { mode: "timestamp_ms" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  submittedAt: integer("submitted_at", { mode: "timestamp_ms" }),
 });
 
 export const transactionsRelations = relations(transactions, ({ many }) => ({
   seats: many(seats),
 }));
+
+export type Transaction = typeof transactions.$inferSelect;

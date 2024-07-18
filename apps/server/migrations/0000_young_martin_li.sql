@@ -10,7 +10,7 @@ CREATE TABLE `transactions` (
 	`uid` text NOT NULL,
 	`round` integer NOT NULL,
 	`created_at` integer NOT NULL,
-	`submitted_at` integer NOT NULL,
+	`submitted_at` integer,
 	FOREIGN KEY (`uid`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
