@@ -4,10 +4,15 @@ import { DrizzleD1Database, drizzle } from "drizzle-orm/d1";
 import * as schema from "./db-schema";
 import { cors } from "hono/cors";
 import { decode, verify } from "hono/jwt";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, ne } from "drizzle-orm";
 import { getJwk } from "./line/get-jwk";
 import { TokenHeader } from "hono/utils/jwt/jwt";
 import { JWTPayload } from "hono/utils/jwt/types";
+import { zValidator } from "@hono/zod-validator";
+import { z } from "zod";
+import { BatchItem } from "drizzle-orm/batch";
+import { ulid } from "./lib/ulidx";
+import { nanoid } from "nanoid";
 
 type Bindings = Env & Record<string, unknown>;
 
@@ -33,7 +38,7 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
     (c, next) =>
       cors({
         origin: c.env.CORS_ALLOW_ORIGIN,
-        allowHeaders: ["Authorization"],
+        allowHeaders: ["Authorization", "Content-Type"],
       })(c, next),
     async (c, next) => {
       const [type, token] = c.req.header("Authorization")?.split(" ") ?? [];
@@ -117,13 +122,358 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
     const db = c.get("db");
     const user = c.get("user");
     if (!user) return c.json({ success: false }, 404);
-    const data = await db.query.transactions.findMany({
+    // only a single uid filter should work. we don't need to worry about seatTransfers here
+    // - completed transfer will automatically be assigned to the new owner, so it won't be shown
+    // - pending transfer still fine to be shown, as it's still assigned to the current owner,
+    //   but we'll post populate the results
+    const results = await db.query.transactions.findMany({
       where: (tr) => eq(tr.uid, user.uid),
       with: {
-        seats: true,
+        seats: {
+          columns: {
+            transactionId: false,
+          },
+        },
+        transfers: {
+          columns: {
+            createdAt: true,
+            transferAcceptId: true,
+            seatId: true,
+          },
+          where: (tr) => isNull(tr.toTransactionId),
+        },
       },
     });
-    return c.json({ success: true, data });
+    type Result = (typeof results)[number];
+    type Tr = Omit<Result, "transfers">;
+    type TransferTr = Omit<Tr, "isTransfered"> & {
+      isTransfered: false;
+    };
+    type Seat = Result["seats"][number];
+    // separate the transfered seats from the original transaction
+    const { data, transfers } = results.reduce<{
+      transfers: TransferTr[];
+      data: Tr[];
+    }>(
+      (acc, tr) => {
+        const { transfers, ...rest } = tr;
+        if (transfers.length > 0) {
+          const { uid, round } = tr;
+          // use map to quickly find the seat by id, and remove it from the map after it's found
+          const seatMap = tr.seats.reduce<Map<string, Seat>>((acc, seat) => {
+            acc.set(seat.id, seat);
+            return acc;
+          }, new Map());
+          const transferTrs = transfers.reduce<Record<string, TransferTr>>(
+            (acc, transfer) => {
+              const { createdAt, transferAcceptId, seatId } = transfer;
+              if (!acc[transferAcceptId]) {
+                acc[transferAcceptId] = {
+                  id: transferAcceptId,
+                  round,
+                  uid,
+                  createdAt,
+                  isTransfered: false,
+                  seats: [],
+                  submittedAt: null,
+                };
+              }
+              const seat = seatMap.get(seatId);
+              if (seat) {
+                acc[transferAcceptId].seats.push(seat);
+                seatMap.delete(seatId);
+              }
+              return acc;
+            },
+            {}
+          );
+          acc.transfers = acc.transfers.concat(Object.values(transferTrs));
+          if (seatMap.size > 0) {
+            acc.data.push({
+              ...rest,
+              seats: Array.from(seatMap.values()),
+            });
+          }
+        } else {
+          acc.data.push(rest);
+        }
+        return acc;
+      },
+      {
+        transfers: [],
+        data: [],
+      }
+    );
+    return c.json({ success: true, data, transfers });
+  })
+  .post(
+    "/seatTransfer/create",
+    zValidator(
+      "json",
+      z.object({
+        seatIds: z.array(z.string()),
+      })
+    ),
+    async (c) => {
+      const db = c.get("db");
+      const user = c.get("user");
+      if (!user) return c.json({ success: false }, 404);
+      const { seatIds } = c.req.valid("json");
+      /**
+       * to create a pending transfer, we need to
+       * create a new seat transfer record for each seat
+       *
+       * but don't assigned the seat to the new transaction yet
+       * to allow easy rollback if needed
+       */
+      // get all trs that is owned by the current user...
+      const allTrs = await db.query.transactions.findMany({
+        columns: {
+          id: true,
+        },
+        where: (tr) => and(eq(tr.uid, user.uid)),
+        orderBy: (tr, { asc }) => asc(tr.round),
+        with: {
+          // and their seats ownership...
+          seats: {
+            columns: {
+              id: true,
+            },
+            where: (seats) => inArray(seats.id, seatIds),
+            with: {
+              // and also query any pending transfers, so that we can filter it out.
+              transfer: {
+                columns: {
+                  transferAcceptId: true,
+                },
+                where: (tr) => isNull(tr.toTransactionId),
+              },
+            },
+          },
+        },
+      });
+      console.log(allTrs);
+      // perform validation
+      // - allow seats that doesn't have any pending transfer
+      // - skip transactions that has no remaining seats
+      const trs = allTrs.reduce<typeof allTrs>((acc, tr) => {
+        const seats = tr.seats.filter((seat) => seat.transfer.length === 0);
+        if (seats.length > 0) {
+          acc.push({ ...tr, seats });
+        }
+        return acc;
+      }, []);
+      console.log(trs);
+      // no valid tr found! reject
+      if (trs.length === 0) return c.json({ success: false }, 404);
+
+      // define a shared `acceptId` for all seat transfers
+      // use this id for transfer accept and revoke of all seats
+      const acceptId = nanoid(6);
+
+      // apply all db changes in a single transaction
+      // will fail all if one of the commits failed
+      const commits = trs
+        .map<BatchItem<"sqlite">[]>((tr) =>
+          tr.seats.map((seat) =>
+            db.insert(schema.seatTransfers).values({
+              id: ulid(Date.now()),
+              fromTransactionId: tr.id,
+              seatId: seat.id,
+              transferAcceptId: acceptId,
+            })
+          )
+        )
+        .flat();
+      console.log(acceptId, commits.length);
+      try {
+        await db.batch(
+          commits as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]
+        );
+        return c.json({ success: true });
+      } catch (err) {
+        console.error(err);
+        return c.json({ success: false }, 500);
+      }
+    }
+  )
+  .post("/seatTransfer/:acceptId/revoke", async (c) => {
+    const db = c.get("db");
+    const user = c.get("user");
+    if (!user) return c.json({ success: false }, 404);
+    const acceptId = c.req.param("acceptId");
+    // as the seat transfer records are separate from the source one
+    // we sure can delete them right away!
+    // but are you sure they haven't accept it yet?
+    const acceptedTransfer = await db.query.seatTransfers.findFirst({
+      where: (tr) =>
+        and(eq(tr.transferAcceptId, acceptId), isNotNull(tr.toTransactionId)),
+    });
+    console.log(acceptedTransfer);
+    if (acceptedTransfer) {
+      // some have already accepted! failure!
+      return c.json({ success: false }, 400);
+    }
+    // delete those record
+    try {
+      console.log(
+        await db.delete(schema.seatTransfers).where(
+          and(
+            eq(schema.seatTransfers.transferAcceptId, acceptId),
+            // we might not need this check again, but for safety..
+            isNull(schema.seatTransfers.toTransactionId)
+          )
+        )
+      );
+      return c.json({ success: true }, 200);
+    } catch (err) {
+      console.error(err);
+      return c.json({ success: false }, 500);
+    }
+  })
+  .post("/seatTransfer/:acceptId/accept", async (c) => {
+    const db = c.get("db");
+    const user = c.get("user");
+    if (!user) return c.json({ success: false }, 404);
+    const acceptId = c.req.param("acceptId");
+    /**
+     * to accept a transfer, we need to
+     * - create a new transfer transaction
+     * - update the seat transactionId to the new transfer transaction
+     *
+     * this operation is non-destructvie.
+     * once the transfer is accepted, the seat will be assigned to the new owner.
+     * the best way to revert this action is to create a new transfer back to the original owner
+     */
+    const transfers = await db.query.seatTransfers.findMany({
+      columns: {
+        id: true,
+        fromTransactionId: true,
+        createdAt: true,
+      },
+      where: (tr) =>
+        and(eq(tr.transferAcceptId, acceptId), isNull(tr.toTransactionId)),
+      with: {
+        seat: {
+          columns: {
+            id: true,
+            round: true,
+          },
+        },
+      },
+    });
+    if (transfers.length === 0) return c.json({ success: false }, 404);
+    // group all transfers by the original transaction
+    const transfersByRound = transfers.reduce((acc, tr) => {
+      const roundStr = tr.seat.round.toString();
+      if (!(roundStr in acc)) {
+        acc[roundStr] = [];
+      }
+      acc[roundStr].push(tr);
+      return acc;
+    }, {} as Record<string, (typeof transfers)[number][]>);
+
+    // apply all db changes in a single transaction
+    // will fail all if one of the commits failed
+    let commits: BatchItem<"sqlite">[] = [];
+    const submittedAt = new Date();
+
+    for (const roundStr in transfersByRound) {
+      const round = parseInt(roundStr);
+      const trs = transfersByRound[roundStr];
+      const newTrId = ulid(Date.now());
+      // create a new transaction, marked for transfer.
+      const createNewTr = db.insert(schema.transactions).values({
+        id: newTrId,
+        uid: user.uid,
+        round,
+        isTransfered: true,
+        createdAt: trs[0].createdAt,
+        submittedAt,
+      });
+
+      const batchRecords = trs
+        .map((tr) => [
+          // update the seat transfer record to the new transaction
+          db
+            .update(schema.seatTransfers)
+            .set({
+              toTransactionId: newTrId,
+            })
+            .where(eq(schema.seatTransfers.id, tr.id)),
+          // update the seat transactionId to the new transaction
+          db
+            .update(schema.seats)
+            .set({
+              transactionId: newTrId,
+            })
+            .where(eq(schema.seats.id, tr.seat.id)),
+        ])
+        .flat();
+
+      commits = commits.concat(createNewTr, batchRecords);
+    }
+    console.log(commits.length);
+    try {
+      await db.batch(
+        commits as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]
+      );
+      return c.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      return c.json({ success: false }, 500);
+    }
+  })
+  .get("/seatTransfer/:acceptId", async (c) => {
+    const db = c.get("db");
+    const user = c.get("user");
+    if (!user) return c.json({ success: false }, 404);
+    const acceptId = c.req.param("acceptId");
+    // retrieve all seats from the given transfer acceptId
+    const results = await db.query.seatTransfers.findMany({
+      columns: {
+        createdAt: true,
+      },
+      where: (tr) =>
+        and(eq(tr.transferAcceptId, acceptId), isNull(tr.toTransactionId)),
+      with: {
+        seat: {
+          columns: {
+            round: true,
+            seat: true,
+          },
+        },
+        transferedFrom: {
+          columns: {},
+          with: {
+            owner: {
+              columns: {
+                name: true,
+                department: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    type Record = (typeof results)[number];
+    type Seat = Omit<Record, "seat" | "transferedFrom"> & Record["seat"];
+    if (results.length === 0) return c.json({ success: false }, 404);
+    const { owner, seats } = results.reduce(
+      (acc, { seat, createdAt, transferedFrom }) => {
+        acc.seats.push({
+          ...seat,
+          createdAt,
+        });
+        acc.owner.add(transferedFrom.owner);
+        return acc;
+      },
+      {
+        seats: [] as Seat[],
+        owner: new Set<Record["transferedFrom"]["owner"]>(),
+      }
+    );
+    return c.json({ success: true, data: { seats, owner: Array.from(owner) } });
   });
 
 export { apiApp };

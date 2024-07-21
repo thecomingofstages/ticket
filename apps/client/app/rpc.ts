@@ -20,7 +20,7 @@ export const client = hc<AppType>(SERVER_URL, {
   ) {
     const authToken = liff.getIDToken();
     const headers = new Headers(
-      init instanceof Request ? init.headers : undefined
+      typeof init === "object" ? init.headers : undefined
     );
     if (authToken) {
       headers.append("Authorization", `Bearer ${authToken}`);

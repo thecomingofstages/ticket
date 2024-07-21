@@ -1,7 +1,11 @@
 import { useRouteLoaderData } from "@remix-run/react";
 import type { clientLoader } from "../routes/me.ticket";
 
-export type Transaction = ReturnType<typeof useMyTicket>[number];
+type Return = ReturnType<typeof useMyTicket>;
+type NormalTransaction = Return["data"][number];
+type TransferTransaction = Return["transfers"][number];
+
+export type Transaction = NormalTransaction | TransferTransaction;
 export type Seat = Transaction["seats"][number];
 
 export const useMyTicket = () => {
@@ -9,5 +13,6 @@ export const useMyTicket = () => {
   if (!ticket) {
     throw new Error("Cannot get ticket");
   }
-  return ticket.data;
+  const { data, transfers } = ticket;
+  return { data, transfers };
 };
