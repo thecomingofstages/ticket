@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Transaction, Seat } from "~/hooks/useMyTicket";
 
 type RenderFnArgs = {
-  tr: Transaction;
+  tr: Pick<Transaction, "createdAt" | "submittedAt" | "isTransfered">;
   seat: Seat;
 };
 
@@ -27,9 +27,16 @@ export function TicketListItem({
         <b className="text-xl">{seat.round}:00</b>
       </div>
       <div className="bg-[#1a1a1a] flex flex-col flex-grow p-4 rounded-r-lg space-y-3">
-        <div className="flex flex-col space-y-0.5">
-          <b>ที่นั่ง {seat.seat}</b>
-          <span className="text-xs text-zinc-300">
+        <div className="flex flex-col space-y-1">
+          <span className="font-bold flex items-center gap-2">
+            ที่นั่ง {seat.seat}{" "}
+            {tr.isTransfered && (
+              <span className="bg-purple-500/70 px-3 py-1 rounded-lg text-xs font-medium">
+                จากการโอนที่นั่ง
+              </span>
+            )}
+          </span>
+          <span className="text-sm text-zinc-300">
             ทำรายการเมื่อ{" "}
             {new Date(tr.submittedAt ?? tr.createdAt).toLocaleString("th-TH")}
           </span>

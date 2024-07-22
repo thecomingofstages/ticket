@@ -30,7 +30,7 @@ type Variables = {
 
 type ProfileEndpoint = {
   providerUser: Pick<LineIdToken, "sub" | "name" | "picture">;
-  data?: Omit<schema.User, "lineUid" | "verified">;
+  data?: Omit<schema.User, "lineUid" | "verified" | "uid">;
 };
 
 const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
@@ -84,7 +84,9 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
         },
       });
     }
-    const { lineUid, ...data } = user;
+    // don't return the internal uid to the user
+    // might be vulnerable at the linkProvider endpoint
+    const { lineUid, uid, ...data } = user;
     return c.json<ProfileEndpoint>({
       providerUser: {
         name,
@@ -152,7 +154,9 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
     type Seat = Result["seats"][number];
     // separate the transfered seats from the original transaction
     const { data, transfers } = results.reduce<{
-      transfers: TransferTr[];
+      // deduplicate transfers globally by transferId
+      // because the same transfer might be assigned to multiple seats and transactions
+      transfers: Record<string, TransferTr>;
       data: Tr[];
     }>(
       (acc, tr) => {
@@ -164,30 +168,25 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
             acc.set(seat.id, seat);
             return acc;
           }, new Map());
-          const transferTrs = transfers.reduce<Record<string, TransferTr>>(
-            (acc, transfer) => {
-              const { createdAt, transferAcceptId, seatId } = transfer;
-              if (!acc[transferAcceptId]) {
-                acc[transferAcceptId] = {
-                  id: transferAcceptId,
-                  round,
-                  uid,
-                  createdAt,
-                  isTransfered: false,
-                  seats: [],
-                  submittedAt: null,
-                };
-              }
-              const seat = seatMap.get(seatId);
-              if (seat) {
-                acc[transferAcceptId].seats.push(seat);
-                seatMap.delete(seatId);
-              }
-              return acc;
-            },
-            {}
-          );
-          acc.transfers = acc.transfers.concat(Object.values(transferTrs));
+          transfers.forEach((transfer) => {
+            const { createdAt, transferAcceptId, seatId } = transfer;
+            if (!acc.transfers[transferAcceptId]) {
+              acc.transfers[transferAcceptId] = {
+                id: transferAcceptId,
+                round,
+                uid,
+                createdAt,
+                isTransfered: false,
+                seats: [],
+                submittedAt: null,
+              };
+            }
+            const seat = seatMap.get(seatId);
+            if (seat) {
+              acc.transfers[transferAcceptId].seats.push(seat);
+              seatMap.delete(seatId);
+            }
+          });
           if (seatMap.size > 0) {
             acc.data.push({
               ...rest,
@@ -200,11 +199,11 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
         return acc;
       },
       {
-        transfers: [],
+        transfers: {},
         data: [],
       }
     );
-    return c.json({ success: true, data, transfers });
+    return c.json({ success: true, data, transfers: Object.values(transfers) });
   })
   .post(
     "/seatTransfer/create",
@@ -252,7 +251,6 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
           },
         },
       });
-      console.log(allTrs);
       // perform validation
       // - allow seats that doesn't have any pending transfer
       // - skip transactions that has no remaining seats
@@ -263,7 +261,6 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
         }
         return acc;
       }, []);
-      console.log(trs);
       // no valid tr found! reject
       if (trs.length === 0) return c.json({ success: false }, 404);
 
@@ -285,7 +282,6 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
           )
         )
         .flat();
-      console.log(acceptId, commits.length);
       try {
         await db.batch(
           commits as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]
@@ -309,20 +305,17 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
       where: (tr) =>
         and(eq(tr.transferAcceptId, acceptId), isNotNull(tr.toTransactionId)),
     });
-    console.log(acceptedTransfer);
     if (acceptedTransfer) {
       // some have already accepted! failure!
-      return c.json({ success: false }, 400);
+      return c.json({ success: false }, 409);
     }
     // delete those record
     try {
-      console.log(
-        await db.delete(schema.seatTransfers).where(
-          and(
-            eq(schema.seatTransfers.transferAcceptId, acceptId),
-            // we might not need this check again, but for safety..
-            isNull(schema.seatTransfers.toTransactionId)
-          )
+      await db.delete(schema.seatTransfers).where(
+        and(
+          eq(schema.seatTransfers.transferAcceptId, acceptId),
+          // we might not need this check again, but for safety..
+          isNull(schema.seatTransfers.toTransactionId)
         )
       );
       return c.json({ success: true }, 200);
@@ -334,7 +327,8 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
   .post("/seatTransfer/:acceptId/accept", async (c) => {
     const db = c.get("db");
     const user = c.get("user");
-    if (!user) return c.json({ success: false }, 404);
+    // fallback to profile register on client
+    if (!user) return c.json({ success: false }, 403);
     const acceptId = c.req.param("acceptId");
     /**
      * to accept a transfer, we need to
@@ -363,6 +357,7 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
       },
     });
     if (transfers.length === 0) return c.json({ success: false }, 404);
+    // todo: prevent some weird case like transfer to yourself?
     // group all transfers by the original transaction
     const transfersByRound = transfers.reduce((acc, tr) => {
       const roundStr = tr.seat.round.toString();
@@ -413,7 +408,6 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
       commits = commits.concat(createNewTr, batchRecords);
     }
-    console.log(commits.length);
     try {
       await db.batch(
         commits as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]
@@ -439,8 +433,7 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
       with: {
         seat: {
           columns: {
-            round: true,
-            seat: true,
+            transactionId: false,
           },
         },
         transferedFrom: {
@@ -450,30 +443,38 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
               columns: {
                 name: true,
                 department: true,
+                phone: true,
               },
             },
           },
         },
       },
     });
-    type Record = (typeof results)[number];
-    type Seat = Omit<Record, "seat" | "transferedFrom"> & Record["seat"];
     if (results.length === 0) return c.json({ success: false }, 404);
-    const { owner, seats } = results.reduce(
-      (acc, { seat, createdAt, transferedFrom }) => {
-        acc.seats.push({
-          ...seat,
-          createdAt,
-        });
-        acc.owner.add(transferedFrom.owner);
-        return acc;
+    // results from drizzle query are duplicated
+    // in reality, the createdAt field (the date this seatTransfer was initiated)
+    // and the owner field (the original owner of the seat) should be the same single value
+    // so for performance we can simply grab from the first index
+    const createdAt = results[0].createdAt;
+    const owner = results[0].transferedFrom.owner;
+    owner.phone =
+      owner.phone.slice(0, 2) +
+      new Array(owner.phone.length - 4).fill("X").join("") +
+      owner.phone.slice(-2);
+    // for the seats, we need to return an array of results as usual.
+    const seats = results.map((tr) => tr.seat);
+    // let's also return the user data to eliminate multiple requests
+    const { name, department, phone } = user;
+    const { picture } = c.get("providerUser");
+    return c.json({
+      success: true,
+      data: {
+        createdAt,
+        owner,
+        seats,
+        user: { name, department, phone, picture },
       },
-      {
-        seats: [] as Seat[],
-        owner: new Set<Record["transferedFrom"]["owner"]>(),
-      }
-    );
-    return c.json({ success: true, data: { seats, owner: Array.from(owner) } });
+    });
   });
 
 export { apiApp };
