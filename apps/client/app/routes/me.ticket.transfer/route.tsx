@@ -65,14 +65,12 @@ export default function MyTicketTransferPage() {
         <div className="flex flex-col gap-6 flex-1 flex-grow px-5 py-6 leading-7">
           <div className="space-y-5">
             <div className="space-y-4">
-              <h2 className="text-2xl font-bold flex-grow">
-                โอนสิทธิ์เจ้าของบัตร
-              </h2>
+              <h2 className="text-2xl font-bold flex-grow">โอนบัตรเข้าชม</h2>
               <p className="text-sm leading-6 text-zinc-300">
-                เลือกที่นั่งที่ต้องการโอนสิทธิ์ให้ผู้อื่นในบัญชี LINE
-                โดยผู้รับจะต้อง<b>ลงทะเบียนสมาชิกทีมงาน</b>เพื่อรับบัตร
+                เลือกที่นั่งที่ต้องการโอน โดยสามารถส่งคำขอโอนผ่านแชทเพื่อนใน
+                LINE และผู้รับจะต้อง<b>ลงทะเบียน</b>เพื่อรับบัตร
                 เมื่อผู้รับกดยอมรับแล้ว
-                บัตรจะถูกโอนสิทธิ์เจ้าของไปยังผู้รับเพื่อใช้สำหรับเข้างานต่อไป
+                บัตรจะถูกโอนไปยังผู้รับเพื่อใช้สำหรับเข้างานต่อไป
               </p>
             </div>
             <TicketList

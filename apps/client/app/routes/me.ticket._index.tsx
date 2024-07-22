@@ -109,7 +109,7 @@ export default function MyTicketListPage() {
                 to="/me/ticket/transfer"
                 className="px-5 py-2.5 bg-white text-black rounded-lg text-sm font-medium flex-shrink-0"
               >
-                โอนสิทธิ์เจ้าของบัตร
+                โอนบัตร
               </Link>
             </div>
             <Description>

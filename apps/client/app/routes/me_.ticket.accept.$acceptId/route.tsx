@@ -148,8 +148,8 @@ export default function TicketAccept() {
         <img src={logo} alt="Logo" width={100} height={100} />
         <h1 className="font-bold text-2xl">คำขอโอนสิทธิ์เจ้าของบัตร</h1>
         <p className="text-zinc-300 text-sm">
-          คุณได้รับคำขอโอนสิทธิ์เจ้าของบัตรการแสดงละครเวทีเรื่อง &quot;Hansel
-          and Gratel : Home Sweet Home The Musical&quot;
+          คุณได้รับคำขอโอนบัตรเข้าชมการแสดงละครเวทีเรื่อง &quot;Hansel and
+          Gratel : Home Sweet Home The Musical&quot;
         </p>
       </header>
       <b>จากบัญชีเจ้าของบัตร</b>

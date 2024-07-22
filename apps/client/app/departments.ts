@@ -1,4 +1,5 @@
 export const departments = [
+  "บุคคลภายนอก (Guest)",
   "โปรดิวเซอร์ (Producer)",
   "นักแสดงและนักเต้น (Actors)",
   "ฝ่ายกำกับเวที (Stage)",

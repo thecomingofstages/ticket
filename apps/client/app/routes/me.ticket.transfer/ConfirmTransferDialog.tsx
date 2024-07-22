@@ -24,12 +24,10 @@ export default function ConfirmTransferDialog({
       <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>
-            ต้องการส่งคำขอโอนสิทธิ์เจ้าของบัตรใช่หรือไม่
-          </AlertDialogTitle>
+          <AlertDialogTitle>ต้องการส่งคำขอโอนบัตรใช่หรือไม่</AlertDialogTitle>
           <AlertDialogDescription>
-            ระบบจะสร้างคำขอโอนสิทธิ์เจ้าของบัตร<b>{seatString}</b> กดปุ่ม{" "}
-            <b>ส่งคำขอ</b> เพื่อเลือกผู้รับและส่งคำขอใน LINE
+            ระบบจะสร้างคำขอโอนบัตร<b>{seatString}</b> กดปุ่ม <b>ส่งคำขอ</b>{" "}
+            เพื่อเลือกผู้รับใน LINE ที่ต้องการส่งคำขอ
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -1,7 +1,8 @@
-import { SubmitHandler, UseFormReturn } from "react-hook-form";
+import { UseFormReturn } from "react-hook-form";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -41,7 +42,10 @@ export function ProfileForm({
             <FormItem>
               <FormLabel>ชื่อ</FormLabel>
               <FormControl>
-                <Input placeholder="ไม่ต้องป้อนคำนำหน้าชื่อ" {...field} />
+                <Input
+                  placeholder="กรอกเป็นภาษาไทย ไม่ต้องมีคำนำหน้าชื่อ"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -73,6 +77,10 @@ export function ProfileForm({
                   disabled={disabled}
                 />
               </FormControl>
+              <FormDescription>
+                กรณีเป็นผู้ปกครองหรือบุคคลภายนอกให้เลือก &quot;บุคคลภายนอก
+                (Guest)&quot;
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

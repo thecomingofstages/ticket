@@ -47,9 +47,9 @@ export default function CreateProfileFallback() {
     <div className="flex flex-col space-y-4 p-6">
       <header className="space-y-3">
         <img src={logo} alt="Logo" width={100} height={100} />
-        <h1 className="font-bold text-2xl">ลงทะเบียนทีมงานเพื่อรับบัตร</h1>
+        <h1 className="font-bold text-2xl">ลงทะเบียนเพื่อรับบัตร</h1>
         <p className="text-zinc-300 text-sm">
-          กรุณาลงทะเบียนสมาชิกทีมงานก่อนรับคำขอโอนสิทธิ์เจ้าของบัตรการแสดงละครเวทีเรื่อง
+          กรุณาลงทะเบียนเพื่อรับคำขอโอนบัตรเข้าชมการแสดงละครเวทีเรื่อง
           &quot;Hansel and Gratel : Home Sweet Home The Musical&quot;
         </p>
       </header>

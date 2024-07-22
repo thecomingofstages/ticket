@@ -16,7 +16,7 @@ export const transferTicketMessage = async ({
     {
       type: "flex",
       altText:
-        "คุณได้รับโอนสิทธิ์เจ้าของบัตรเข้าชมการแสดงละครเวทีเรื่อง Hansel and Gretel : Home Sweet Home The Musical",
+        "คุณได้รับโอนบัตรเข้าชมการแสดงละครเวทีเรื่อง Hansel and Gretel : Home Sweet Home The Musical",
       contents: {
         type: "bubble",
         hero: {
@@ -47,7 +47,7 @@ export const transferTicketMessage = async ({
             },
             {
               type: "text",
-              text: "คุณได้รับโอนสิทธิ์เจ้าของบัตรเข้าชมการแสดงละครเวทีเรื่อง Hansel and Gretel : Home Sweet Home The Musical",
+              text: "คุณได้รับโอนบัตรเข้าชมการแสดงละครเวทีเรื่อง Hansel and Gretel : Home Sweet Home The Musical",
               margin: "sm",
               size: "sm",
               wrap: true,
