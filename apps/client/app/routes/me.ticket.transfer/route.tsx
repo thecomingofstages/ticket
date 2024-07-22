@@ -3,11 +3,16 @@ import TicketList from "~/components/TicketList";
 import BottomFooter from "~/components/layout/BottomFooter";
 import { Button } from "~/components/ui/button";
 import { Seat, useMyTicket } from "~/hooks/useMyTicket";
-import { seatsArrayToString } from "~/lib/seat-sort";
+import { groupSeatByRound, seatsArrayToString } from "~/lib/seat-sort";
 import ConfirmTransferDialog from "./ConfirmTransferDialog";
-import { useNavigate, useRevalidator } from "@remix-run/react";
+import { MetaFunction, useNavigate, useRevalidator } from "@remix-run/react";
 import { client } from "~/rpc";
 import { Spinner } from "~/components/layout/Spinner";
+import { transferTicketMessage } from "~/lib/msg-template";
+
+export const meta: MetaFunction = () => [
+  { title: "โอนสิทธิ์เจ้าของบัตร : TCOS Ticket Booking" },
+];
 
 export default function MyTicketTransferPage() {
   const { data } = useMyTicket();
@@ -35,6 +40,14 @@ export default function MyTicketTransferPage() {
       );
       setLoading(false);
       if (res.status === 200) {
+        const {
+          data: { acceptId, createdAt },
+        } = await res.json();
+        await transferTicketMessage({
+          acceptId,
+          createdAt: new Date(createdAt),
+          seats: groupSeatByRound(seatsArray),
+        });
         return navigate("/me/ticket", { replace: true });
       }
     } catch (err) {
@@ -96,7 +109,7 @@ export default function MyTicketTransferPage() {
           <span>
             <b>เลือกแล้ว</b> {selected.size} ที่นั่ง
           </span>
-          <span className="text-xs text-zinc-400">ที่นั่ง {seatString}</span>
+          <span className="text-xs text-zinc-400">{seatString}</span>
         </div>
         <div className="flex flex-col items-end justify-center gap-2 flex-shrink-0">
           <ConfirmTransferDialog

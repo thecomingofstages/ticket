@@ -143,9 +143,15 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
     if (user) {
       if (user.uid === id) {
         // already linked, return success json but 4xx status code to indicate partial success
-        return c.json({ success: true }, 409);
+        return c.json({ success: true } as const, 409);
       }
-      return c.json({ success: false }, 401);
+      return c.json(
+        {
+          success: false,
+          message: "ลิงก์ URL เข้าใช้งานไม่ถูกต้อง โปรดติดต่อ LINE Official",
+        } as const,
+        401
+      );
     }
     try {
       await db
@@ -153,17 +159,21 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
         .set({ lineUid: sub })
         .where(eq(schema.users.uid, id))
         .run();
-      return c.json({ success: true });
+      return c.json({ success: true } as const, 200);
     } catch (err) {
       console.error(err);
-      return c.json({ success: true }, 500);
+      return c.json({ success: false, message: "" } as const, 500);
     }
   })
 
   .get("/ticket", async (c) => {
     const db = c.get("db");
     const user = c.get("user");
-    if (!user) return c.json({ success: false }, 404);
+    if (!user)
+      return c.json(
+        { success: false, message: "ไม่พบข้อมูลผู้ใช้" } as const,
+        404
+      );
     // only a single uid filter should work. we don't need to worry about seatTransfers here
     // - completed transfer will automatically be assigned to the new owner, so it won't be shown
     // - pending transfer still fine to be shown, as it's still assigned to the current owner,
@@ -243,7 +253,14 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
         data: [],
       }
     );
-    return c.json({ success: true, data, transfers: Object.values(transfers) });
+    return c.json(
+      {
+        success: true,
+        data,
+        transfers: Object.values(transfers),
+      } as const,
+      200
+    );
   })
   .post(
     "/seatTransfer/create",
@@ -307,6 +324,7 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
       // define a shared `acceptId` for all seat transfers
       // use this id for transfer accept and revoke of all seats
       const acceptId = nanoid(6);
+      const createdAt = new Date();
 
       // apply all db changes in a single transaction
       // will fail all if one of the commits failed
@@ -318,6 +336,7 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
               fromTransactionId: tr.id,
               seatId: seat.id,
               transferAcceptId: acceptId,
+              createdAt,
             })
           )
         )
@@ -326,7 +345,7 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
         await db.batch(
           commits as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]
         );
-        return c.json({ success: true });
+        return c.json({ success: true, data: { createdAt, acceptId } });
       } catch (err) {
         console.error(err);
         return c.json({ success: false }, 500);
@@ -461,7 +480,11 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
   .get("/seatTransfer/:acceptId", async (c) => {
     const db = c.get("db");
     const user = c.get("user");
-    if (!user) return c.json({ success: false }, 403);
+    if (!user)
+      return c.json(
+        { success: false, message: "กรุณาลงทะเบียนผู้ใช้งาน" } as const,
+        403
+      );
     const acceptId = c.req.param("acceptId");
     // retrieve all seats from the given transfer acceptId
     const results = await db.query.seatTransfers.findMany({
@@ -490,7 +513,14 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
         },
       },
     });
-    if (results.length === 0) return c.json({ success: false }, 404);
+    if (results.length === 0)
+      return c.json(
+        {
+          success: false,
+          message: "ไม่พบคำขอโอนที่ต้องการ คำขอนี้อาจใช้หรือถูกยกเลิกไปแล้ว",
+        } as const,
+        404
+      );
     // results from drizzle query are duplicated
     // in reality, the createdAt field (the date this seatTransfer was initiated)
     // and the owner field (the original owner of the seat) should be the same single value
@@ -506,15 +536,18 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
     // let's also return the user data to eliminate multiple requests
     const { name, department, phone } = user;
     const { picture } = c.get("providerUser");
-    return c.json({
-      success: true,
-      data: {
-        createdAt,
-        owner,
-        seats,
-        user: { name, department, phone, picture },
+    return c.json(
+      {
+        success: true,
+        data: {
+          createdAt,
+          owner,
+          seats,
+          user: { name, department, phone, picture },
+        } as const,
       },
-    });
+      200
+    );
   });
 
 export { apiApp };

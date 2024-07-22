@@ -80,9 +80,7 @@ export const seatTransfers = sqliteTable("seat_transfers", {
       onDelete: "restrict",
     })
     .notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   transferAcceptId: text("transfer_accept_id").notNull(),
 });
 

@@ -36,7 +36,7 @@ export function TicketListItem({
               </span>
             )}
           </span>
-          <span className="text-sm text-zinc-300">
+          <span className="text-xs text-zinc-300">
             ทำรายการเมื่อ{" "}
             {new Date(tr.submittedAt ?? tr.createdAt).toLocaleString("th-TH")}
           </span>

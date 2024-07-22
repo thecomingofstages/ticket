@@ -28,8 +28,8 @@ export default function RevokeTransferDialog({
             ต้องการยกเลิกคำขอโอนสิทธิ์เจ้าของบัตรใช่หรือไม่
           </AlertDialogTitle>
           <AlertDialogDescription>
-            ระบบจะยกเลิกคำขอโอนสิทธิ์เจ้าของบัตรสำหรับที่นั่ง{" "}
-            <b>{seatString}</b> คำขอที่ส่งแล้วจะไม่สามารถใช้งานได้อีก
+            ระบบจะยกเลิกคำขอโอนสิทธิ์เจ้าของบัตร<b>{seatString}</b>{" "}
+            คำขอที่ส่งแล้วจะไม่สามารถใช้งานได้อีก
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -28,8 +28,8 @@ export default function ConfirmTransferDialog({
             ต้องการส่งคำขอโอนสิทธิ์เจ้าของบัตรใช่หรือไม่
           </AlertDialogTitle>
           <AlertDialogDescription>
-            ระบบจะสร้างคำขอโอนสิทธิ์เจ้าของบัตรสำหรับที่นั่ง <b>{seatString}</b>{" "}
-            กดปุ่ม <b>ส่งคำขอ</b> เพื่อเลือกผู้รับและส่งคำขอใน LINE
+            ระบบจะสร้างคำขอโอนสิทธิ์เจ้าของบัตร<b>{seatString}</b> กดปุ่ม{" "}
+            <b>ส่งคำขอ</b> เพื่อเลือกผู้รับและส่งคำขอใน LINE
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -6,11 +6,12 @@ import { client } from "~/rpc";
 
 export const clientLoader = async () => {
   await initLiff();
-  const data = await client.api.ticket.$get();
-  if (data.status === 200) {
-    return json(await data.json());
+  const res = await client.api.ticket.$get();
+  if (res.status === 200) {
+    return json(await res.json());
   }
-  throw new Error("Invalid response");
+  const { message } = await res.json();
+  throw json({ success: false, message }, res.status);
 };
 
 export default function MyTicket() {

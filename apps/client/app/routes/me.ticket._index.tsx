@@ -1,4 +1,4 @@
-import { Link, useRevalidator } from "@remix-run/react";
+import { Link, MetaFunction, useRevalidator } from "@remix-run/react";
 import TicketList, { TicketListItem } from "~/components/TicketList";
 import { Button } from "~/components/ui/button";
 import { useMyTicket } from "~/hooks/useMyTicket";
@@ -7,6 +7,10 @@ import { client } from "~/rpc";
 import { Suspense, lazy, useState } from "react";
 import { seatsArrayToString } from "~/lib/seat-sort";
 import { Spinner } from "~/components/layout/Spinner";
+
+export const meta: MetaFunction = () => [
+  { title: "รายการบัตรเข้าชม : TCOS Ticket Booking" },
+];
 
 const RevokeTransferDialog = lazy(
   () => import("./me.ticket.transfer/RevokeTransferDialog")
