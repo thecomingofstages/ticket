@@ -165,7 +165,6 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
       return c.json({ success: false, message: "" } as const, 500);
     }
   })
-
   .get("/ticket", async (c) => {
     const db = c.get("db");
     const user = c.get("user");
@@ -261,6 +260,17 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
       } as const,
       200
     );
+  })
+  .get("/seat/:seatId", async (c) => {
+    const db = c.get("db");
+    const seatId = c.req.param("seatId");
+    const result = await db.query.seats.findFirst({
+      where: (s) => eq(s.id, seatId),
+    });
+    if (!result) {
+      return c.json({ success: false }, 404);
+    }
+    return c.json({ success: true, data: result }, 200);
   })
   .post(
     "/seatTransfer/create",
