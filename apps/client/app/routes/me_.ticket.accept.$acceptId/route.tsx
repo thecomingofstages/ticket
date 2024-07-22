@@ -11,6 +11,9 @@ import { initLiff } from "~/lib/liff";
 import { client } from "~/rpc";
 import logo from "~/images/logo-white.png";
 import { UserCircle } from "lucide-react";
+import { lazy, useState } from "react";
+
+const CreateProfileFallback = lazy(() => import("./CreateProfile"));
 
 export const clientLoader = async ({ params }: ClientLoaderFunctionArgs) => {
   const { acceptId } = params as { acceptId: string };
@@ -65,9 +68,10 @@ export default function TicketAccept() {
   const data = useLoaderData<typeof clientLoader>();
   const { revalidate } = useRevalidator();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   if (!data.success) {
-    return null;
+    return <CreateProfileFallback />;
   }
 
   const {
@@ -77,21 +81,24 @@ export default function TicketAccept() {
 
   const accept = async () => {
     try {
+      setLoading(true);
       const res = await client.api.seatTransfer[":acceptId"].accept.$post({
         param: { acceptId },
       });
+      setLoading(false);
       if (res.status === 200) {
         return navigate("/me/ticket");
       }
     } catch (err) {
       console.error(err);
+      setLoading(false);
     } finally {
       revalidate();
     }
   };
 
   return (
-    <div className="flex flex-col space-y-4 p-6 shadow shadow-zinc-700">
+    <div className="flex flex-col space-y-4 p-6">
       <header className="space-y-3">
         <img src={logo} alt="Logo" width={100} height={100} />
         <h1 className="font-bold text-2xl">คำขอโอนสิทธิ์เจ้าของบัตร</h1>
@@ -129,8 +136,12 @@ export default function TicketAccept() {
         หากเกิดความเสียหายจะไม่รับผิดชอบทุกกรณี
       </p>
       <div className="grid grid-cols-2 gap-2.5 py-1">
-        <Button variant={"secondary"}>ปฏิเสธ</Button>
-        <Button onClick={accept}>ยอมรับ</Button>
+        <Button disabled={loading} variant={"secondary"}>
+          ปฏิเสธ
+        </Button>
+        <Button disabled={loading} onClick={accept}>
+          {loading ? "กำลังโหลด..." : "ยอมรับ"}
+        </Button>
       </div>
     </div>
   );

@@ -96,6 +96,45 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
       data,
     });
   })
+  .post(
+    "/profile",
+    zValidator(
+      "json",
+      z.object({
+        name: z.string(),
+        surname: z.string(),
+        email: z.string().email(),
+        phone: z.string(),
+        department: z.string(),
+      })
+    ),
+    async (c) => {
+      const existingUser = c.get("user");
+      if (existingUser) {
+        // we don't allow profile updating at this time.
+        return c.json({ success: false }, 403);
+      }
+      const { name, surname, ...profile } = c.req.valid("json");
+      const db = c.get("db");
+
+      const { sub } = c.get("providerUser");
+      try {
+        await db
+          .insert(schema.users)
+          .values({
+            ...profile,
+            name: `${name} ${surname}`,
+            lineUid: sub,
+            uid: nanoid(10),
+          })
+          .run();
+        return c.json({ success: true });
+      } catch (err) {
+        console.error(err);
+        return c.json({ success: true }, 500);
+      }
+    }
+  )
   .put("/linkProvider/:id", async (c) => {
     const id = c.req.param("id");
     const user = c.get("user");
@@ -120,6 +159,7 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
       return c.json({ success: true }, 500);
     }
   })
+
   .get("/ticket", async (c) => {
     const db = c.get("db");
     const user = c.get("user");
@@ -421,7 +461,7 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
   .get("/seatTransfer/:acceptId", async (c) => {
     const db = c.get("db");
     const user = c.get("user");
-    if (!user) return c.json({ success: false }, 404);
+    if (!user) return c.json({ success: false }, 403);
     const acceptId = c.req.param("acceptId");
     // retrieve all seats from the given transfer acceptId
     const results = await db.query.seatTransfers.findMany({
