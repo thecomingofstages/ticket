@@ -32,7 +32,7 @@ export default function SeatPage() {
         </p>
       </header>
       <section className="bg-white/10 p-4 rounded-sm space-y-4">
-        <b className="text-xl">ข้อมูลที่นั่ง</b>
+        <b className="text-xl">ข้อมูลบัตรเข้าชม</b>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <b>รอบการแสดง</b>
@@ -45,9 +45,9 @@ export default function SeatPage() {
         </div>
       </section>
       <section className="bg-white/10 p-4 rounded-sm space-y-3">
-        <b className="text-xl">การเข้าชม</b>
+        <b className="text-xl">ข้อมูล E-Ticket</b>
         <p className="text-zinc-300 pt-1">
-          โปรดแสดง QR Code นี้ให้แก่เจ้าหน้าที่เพื่อสแกนก่อนเข้าชม
+          โปรดแสดง QR Code นี้ให้แก่เจ้าหน้าที่เพื่อสแกนก่อนเข้างาน
         </p>
         <div className="flex w-full items-center justify-center py-4">
           <div className="bg-white p-4">

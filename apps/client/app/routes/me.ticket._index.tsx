@@ -1,4 +1,10 @@
-import { Link, MetaFunction, useRevalidator } from "@remix-run/react";
+import {
+  Link,
+  MetaFunction,
+  json,
+  useLoaderData,
+  useRevalidator,
+} from "@remix-run/react";
 import TicketList, { TicketListItem } from "~/components/TicketList";
 import { Button } from "~/components/ui/button";
 import { useMyTicket } from "~/hooks/useMyTicket";
@@ -7,6 +13,8 @@ import { client } from "~/rpc";
 import { Suspense, lazy, useState } from "react";
 import { seatsArrayToString } from "~/lib/seat-sort";
 import { Spinner } from "~/components/layout/Spinner";
+import { transferTicketMessage } from "../lib/msg-template";
+import { isAfter } from "date-fns";
 
 export const meta: MetaFunction = () => [
   { title: "รายการบัตรเข้าชม : TCOS Ticket Booking" },
@@ -37,7 +45,15 @@ const Description = ({ children }: WithChildren) => (
   <p className="text-sm leading-6 text-zinc-300">{children}</p>
 );
 
+export const loader = async () => {
+  const date = new Date();
+  const enableETicket =
+    import.meta.env.DEV || isAfter(date, new Date("2024-07-26T17:00:00.000Z"));
+  return json({ enableETicket });
+};
+
 export default function MyTicketListPage() {
+  const { enableETicket } = useLoaderData<typeof loader>();
   const [loading, setLoading] = useState(false);
   const { data, transfers } = useMyTicket();
   const { revalidate, state } = useRevalidator();
@@ -74,9 +90,16 @@ export default function MyTicketListPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <Button
                       variant={"secondary"}
+                      onClick={async () => {
+                        await transferTicketMessage({
+                          acceptId: tr.id,
+                          seats: tr.seats,
+                          createdAt: tr.createdAt,
+                        });
+                      }}
                       className="bg-[#06c755] hover:bg-[#06c755]"
                     >
-                      แชร์รายการโอน
+                      ส่งในแชท LINE
                     </Button>
                     <Suspense
                       fallback={
@@ -118,11 +141,17 @@ export default function MyTicketListPage() {
           </MetadataColumn>
           <TicketList
             data={data}
-            Content={() => (
-              <Button variant={"secondary"} disabled size={"sm"}>
-                ยังไม่ถึงเวลางาน
-              </Button>
-            )}
+            Content={({ seat }) =>
+              enableETicket ? (
+                <Button size={"sm"} asChild>
+                  <Link to={`/me/ticket/${seat.id}`}>เปิด E-Ticket</Link>
+                </Button>
+              ) : (
+                <Button variant={"secondary"} disabled size={"sm"}>
+                  ยังไม่ถึงเวลางาน
+                </Button>
+              )
+            }
           />
         </Section>
       </div>

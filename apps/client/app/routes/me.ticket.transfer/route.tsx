@@ -45,8 +45,8 @@ export default function MyTicketTransferPage() {
         } = await res.json();
         await transferTicketMessage({
           acceptId,
-          createdAt: new Date(createdAt),
-          seats: groupSeatByRound(seatsArray),
+          createdAt,
+          seats: seatsArray,
         });
         return navigate("/me/ticket", { replace: true });
       }

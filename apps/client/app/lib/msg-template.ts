@@ -1,13 +1,14 @@
+import { Seat } from "~/hooks/useMyTicket";
 import { liff } from "./liff";
-import { SeatGroupByRound } from "./seat-sort";
+import { groupSeatByRound } from "./seat-sort";
 
 export const transferTicketMessage = async ({
   createdAt,
   seats,
   acceptId,
 }: {
-  createdAt: Date;
-  seats: SeatGroupByRound;
+  createdAt: string;
+  seats: Seat[];
   acceptId: string;
 }) => {
   const acceptUrl = `${window.location.origin}/me/ticket/accept/${acceptId}`;
@@ -56,7 +57,7 @@ export const transferTicketMessage = async ({
               type: "box",
               layout: "vertical",
               spacing: "sm",
-              contents: seats.map(([round, seats]) => ({
+              contents: groupSeatByRound(seats).map(([round, seats]) => ({
                 type: "box",
                 layout: "vertical",
                 spacing: "sm",
@@ -101,7 +102,9 @@ export const transferTicketMessage = async ({
             },
             {
               type: "text",
-              text: `ทำรายการโอนเมื่อ ${createdAt.toLocaleString("th-TH")}`,
+              text: `ทำรายการโอนเมื่อ ${new Date(createdAt).toLocaleString(
+                "th-TH"
+              )}`,
               size: "xs",
               style: "normal",
               color: "#9ca3af",
