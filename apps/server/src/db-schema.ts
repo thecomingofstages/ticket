@@ -17,6 +17,7 @@ export const seats = sqliteTable("seats", {
   seat: text("seat"),
   round: integer("round").notNull(),
   transactionId: text("transaction_id").references(() => transactions.id),
+  checkInAt: integer("check_in_at", { mode: "timestamp" }),
 });
 
 export type Seat = typeof seats.$inferSelect;
@@ -80,7 +81,9 @@ export const seatTransfers = sqliteTable("seat_transfers", {
       onDelete: "restrict",
     })
     .notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
   transferAcceptId: text("transfer_accept_id").notNull(),
 });
 
@@ -102,3 +105,11 @@ export const seatTransferRelations = relations(seatTransfers, ({ one }) => ({
 }));
 
 export type SeatTransfer = typeof seatTransfers.$inferSelect;
+
+export const staffUsers = sqliteTable("staff_users", {
+  uid: integer("id").primaryKey(),
+  phone: text("phone").notNull(),
+  password: text("password").notNull(),
+});
+
+export type StaffUser = typeof staffUsers.$inferSelect;

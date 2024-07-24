@@ -29,6 +29,13 @@
       "when": 1721407375662,
       "tag": "0003_white_mindworm",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1721839906521,
+      "tag": "0004_blue_wither",
+      "breakpoints": true
     }
   ]
 }

@@ -143,8 +143,14 @@ export default function MyTicketListPage() {
             data={data}
             Content={({ seat }) =>
               enableETicket ? (
-                <Button size={"sm"} asChild>
-                  <Link to={`/me/ticket/${seat.id}`}>เปิด E-Ticket</Link>
+                <Button
+                  size={"sm"}
+                  asChild
+                  variant={seat.checkInAt ? "secondary" : "default"}
+                >
+                  <Link to={`/me/ticket/${seat.id}`}>
+                    เปิด E-Ticket{seat.checkInAt && " (ใช้งานแล้ว)"}
+                  </Link>
                 </Button>
               ) : (
                 <Button variant={"secondary"} disabled size={"sm"}>

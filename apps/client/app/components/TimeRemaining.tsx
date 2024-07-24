@@ -1,7 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { intervalToDuration } from "date-fns";
 
-export const TimeRemaining = ({ expiration }: { expiration?: Date }) => {
+export const TimeRemaining = ({
+  expiration,
+  onExpire,
+}: {
+  expiration?: Date;
+  onExpire?: () => void;
+}) => {
   const [curDate, setCurDate] = useState(new Date());
   const timer = useRef<NodeJS.Timeout>();
   useEffect(() => {
@@ -14,19 +20,31 @@ export const TimeRemaining = ({ expiration }: { expiration?: Date }) => {
     return () => clearInterval(timer.current);
   }, [expiration]);
   if (!expiration) return null;
-  const diff = intervalToDuration({
-    start: curDate,
-    end: expiration,
-  });
-  const minutes = diff.minutes && diff.minutes > 0 ? diff.minutes : 0;
-  const seconds = diff.seconds && diff.seconds > 0 ? diff.seconds : 0;
+  const { minutes, seconds } = useMemo(() => {
+    const diff = intervalToDuration({
+      start: curDate,
+      end: expiration,
+    });
+    const minutes = diff.minutes && diff.minutes > 0 ? diff.minutes : 0;
+    const seconds = diff.seconds && diff.seconds > 0 ? diff.seconds : 0;
+    return {
+      minutes,
+      seconds,
+    };
+  }, [curDate, expiration]);
+
+  useEffect(() => {
+    if (minutes === 0 && seconds === 0 && onExpire) {
+      onExpire?.();
+    }
+  }, [minutes, seconds, onExpire]);
   return (
-    <div className="text-xs text-zinc-400">
+    <div className="text-sm text-zinc-400">
       {minutes === 0 && seconds === 0 ? (
-        <>หมดเวลาการทำรายการ</>
+        <>กำลังอัพเดทข้อมูล</>
       ) : (
         <>
-          เหลือเวลา {minutes} นาที {seconds} วินาที
+          อัพเดทข้อมูลอัตโนมัติภายใน {minutes} นาที {seconds} วินาที
         </>
       )}
     </div>

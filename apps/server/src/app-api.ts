@@ -4,7 +4,7 @@ import { DrizzleD1Database, drizzle } from "drizzle-orm/d1";
 import * as schema from "./db-schema";
 import { cors } from "hono/cors";
 import { decode, verify } from "hono/jwt";
-import { and, desc, eq, inArray, isNotNull, isNull, ne } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, ne } from "drizzle-orm";
 import { getJwk } from "./line/get-jwk";
 import { TokenHeader } from "hono/utils/jwt/jwt";
 import { JWTPayload } from "hono/utils/jwt/types";
@@ -13,6 +13,8 @@ import { z } from "zod";
 import { BatchItem } from "drizzle-orm/batch";
 import { ulid } from "./lib/ulidx";
 import { nanoid } from "nanoid";
+import { createCheckInToken } from "./app-checkin";
+import { isValid } from "date-fns";
 
 type Bindings = Env & Record<string, unknown>;
 
@@ -264,13 +266,38 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
   .get("/seat/:seatId", async (c) => {
     const db = c.get("db");
     const seatId = c.req.param("seatId");
+    const user = c.get("user");
     const result = await db.query.seats.findFirst({
       where: (s) => eq(s.id, seatId),
     });
-    if (!result) {
+    if (!result || !user) {
       return c.json({ success: false }, 404);
     }
-    return c.json({ success: true, data: result }, 200);
+    const { checkInAt, ...data } = result;
+    const { uid } = user;
+    const checkIn:
+      | {
+          success: true;
+          at: Date;
+        }
+      | {
+          success: false;
+          token: string;
+          exp: number;
+        } =
+      checkInAt && isValid(checkInAt)
+        ? { success: true, at: checkInAt }
+        : {
+            success: false,
+            ...(await createCheckInToken(
+              {
+                aud: seatId,
+                sub: uid,
+              },
+              c.env.HMAC_SECRET
+            )),
+          };
+    return c.json({ success: true, data: { ...result, checkIn } }, 200);
   })
   .post(
     "/seatTransfer/create",

@@ -5,6 +5,7 @@ import { validateSignature } from "./line/validateSignature";
 import { TicketRoom } from "./rooms/ticket";
 import { bearerAuth } from "hono/bearer-auth";
 import { apiApp } from "./app-api";
+import { checkInApp } from "./app-checkin";
 
 type Bindings = Env & Record<string, unknown>;
 
@@ -12,10 +13,9 @@ type Variables = {
   uid: string;
 };
 
-const app = new Hono<{ Bindings: Bindings; Variables: Variables }>().route(
-  "/api",
-  apiApp
-);
+const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+  .route("/api", apiApp)
+  .route("/checkIn", checkInApp);
 
 app.get("/", async (c) => {
   return c.json({ success: true });
