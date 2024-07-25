@@ -1,5 +1,12 @@
+import { MetaFunction } from "@remix-run/cloudflare";
 import { Outlet, isRouteErrorResponse, useRouteError } from "@remix-run/react";
 import logo from "~/images/logo-white.png";
+
+export const meta: MetaFunction = () => [
+  {
+    title: "Ticket Check-in : TCOS Booking System",
+  },
+];
 
 export function ErrorBoundary() {
   const error = useRouteError();

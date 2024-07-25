@@ -11,6 +11,13 @@ import QRCode from "react-qr-code";
 import { TimeRemaining } from "~/components/TimeRemaining";
 import { Button } from "~/components/ui/button";
 import { Spinner } from "~/components/layout/Spinner";
+import { MetaFunction } from "@remix-run/cloudflare";
+
+export const meta: MetaFunction = () => [
+  {
+    title: "แสดงบัตรเข้าชม : TCOS Booking System",
+  },
+];
 
 export const clientLoader = async ({ params }: ClientActionFunctionArgs) => {
   await initLiff();
@@ -23,13 +30,7 @@ export const clientLoader = async ({ params }: ClientActionFunctionArgs) => {
   throw json({ success: false }, res.status);
 };
 
-export function HydrateFallback() {
-  return (
-    <div className="flex flex-col h-screen justify-center">
-      <Spinner text="กำลังโหลดข้อมูลบัตร..." />
-    </div>
-  );
-}
+export { ErrorBoundary, HydrateFallback } from "./me";
 
 export default function SeatPage() {
   const { data: seat } = useLoaderData<typeof clientLoader>();

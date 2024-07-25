@@ -22,6 +22,9 @@ importers:
       '@line/liff':
         specifier: ^2.23.2
         version: 2.23.2
+      '@marsidev/react-turnstile':
+        specifier: ^0.7.2
+        version: 0.7.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@radix-ui/react-alert-dialog':
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1463,6 +1466,12 @@ packages:
 
   '@line/liff@2.23.2':
     resolution: {integrity: sha512-Xu4YRJlOUiQIkja3upj0enU/r7w3a8MA0XYLwlSVSanVMeRwt4GwUVldP2C4vd75DzOnvqEgCL/OqlSMofdYtg==}
+
+  '@marsidev/react-turnstile@0.7.2':
+    resolution: {integrity: sha512-0jwLvAUkcLkaYaS6jBOZB3zzUiKi5dU3kZtlaeBX6yV7Y4CbFEtfHCY352ovphNz1v0ZjpOj6+3QUczJvD56VA==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
 
   '@mdx-js/mdx@2.3.0':
     resolution: {integrity: sha512-jLuwRlz8DQfQNiUCJR50Y09CGPq3fLtmtUQfVrj79E0JWu3dvsVcxVIcfhR5h0iXu+/z++zDrYeiJqifRynJkA==}
@@ -6521,6 +6530,11 @@ snapshots:
     transitivePeerDependencies:
       - debug
       - supports-color
+
+  '@marsidev/react-turnstile@0.7.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
 
   '@mdx-js/mdx@2.3.0':
     dependencies:

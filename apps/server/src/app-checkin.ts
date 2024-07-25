@@ -33,11 +33,14 @@ export const createCheckInToken = async (
   password: string
 ) => {
   const iat = Math.floor(Date.now() / 1000);
+  // todo: should be 5 minute (1 for debugging)
   const exp = iat + 1 * 60;
   const payload = {
     aud,
     sub,
     iat,
+    // todo: extend token validity for pending requests about 1 minute
+    // exp: exp + 60,
     exp,
   };
   return { token: await sign(payload, password), exp };
