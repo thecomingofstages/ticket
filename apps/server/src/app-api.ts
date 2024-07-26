@@ -297,7 +297,7 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
               c.env.HMAC_SECRET
             )),
           };
-    return c.json({ success: true, data: { ...result, checkIn } }, 200);
+    return c.json({ success: true, data: { ...data, checkIn } }, 200);
   })
   .post(
     "/seatTransfer/create",
