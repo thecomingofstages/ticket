@@ -87,6 +87,9 @@ export default function MyTicketListPage() {
                   รายการบัตรเหล่านี้อยู่ระหว่างรอผู้รับยืนยัน
                   เมื่อผู้รับกดยืนยันแล้ว บัตรจะถูกโอนไปยังผู้รับทันที
                 </Description>
+                <p className="text-sm leading-6">
+                  คำขอโอนสามารถกดรับได้ 1 ครั้งเท่านั้น หากต้องการโอนให้ผู้รับหลายคน กรุณาแยกที่นั่งที่ต้องการโอนเป็นรายการแต่ละรายการ
+                </p>
               </MetadataColumn>
               {transfers.map((tr) => (
                 <Section key={tr.id} className="p-5 bg-white/15 rounded-sm">
