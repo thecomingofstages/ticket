@@ -7,6 +7,11 @@
 import { RemixBrowser } from "@remix-run/react";
 import { startTransition, StrictMode } from "react";
 import { hydrateRoot } from "react-dom/client";
+import LogRocket from "logrocket";
+
+if (import.meta.env.PROD && import.meta.env.VITE_LOGROCKET_ID) {
+  LogRocket.init(import.meta.env.VITE_LOGROCKET_ID);
+}
 
 startTransition(() => {
   hydrateRoot(

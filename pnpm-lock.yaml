@@ -67,6 +67,9 @@ importers:
       isbot:
         specifier: ^4.1.0
         version: 4.4.0
+      logrocket:
+        specifier: ^8.1.2
+        version: 8.1.2
       lucide-react:
         specifier: ^0.403.0
         version: 0.403.0(react@18.3.1)
@@ -3741,6 +3744,9 @@ packages:
   log-symbols@4.1.0:
     resolution: {integrity: sha512-8XPvpAA8uyhfteu8pIvQxpJZ7SYYdpUivZpGy6sFsBuKRY/7rQGavedeB8aK+Zkyq6upMFVL/9AW6vOYzfRyLg==}
     engines: {node: '>=10'}
+
+  logrocket@8.1.2:
+    resolution: {integrity: sha512-9D9ZiDkRkoDqjY/vV5L31Ry7dtNRDGiEFniPWmDUILBRdrCX/kPTMjXlD/RdHd/mUbRYM827lXJBIuoVHpShtA==}
 
   longest-streak@3.1.0:
     resolution: {integrity: sha512-9Ri+o0JYgehTaVBBDoMqIl8GXtbWg711O3srftcHhZ0dqnETqLaoIK0x17fUw9rFSlK/0NlsKe0Ahhyl5pXE2g==}
@@ -9124,6 +9130,8 @@ snapshots:
     dependencies:
       chalk: 4.1.2
       is-unicode-supported: 0.1.0
+
+  logrocket@8.1.2: {}
 
   longest-streak@3.1.0: {}
 
