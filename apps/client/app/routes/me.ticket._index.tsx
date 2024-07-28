@@ -75,6 +75,9 @@ export default function MyTicketListPage() {
     <div className="flex-1 flex-grow overflow-y-auto">
       {(loading || state === "loading") && <Spinner text="กำลังดำเนินการ..." />}
       <div className="flex flex-col gap-6 flex-1 flex-grow px-5 py-6 leading-7">
+        <Section>
+          <img src="/rules.png" alt="Rules" className="max-w-full h-auto" />
+        </Section>
         {transfers.length > 0 && (
           <>
             <Section className="space-y-4">
