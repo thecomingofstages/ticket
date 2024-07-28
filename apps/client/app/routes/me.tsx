@@ -9,12 +9,16 @@ import { Spinner } from "~/components/layout/Spinner";
 import { initLiff } from "~/lib/liff";
 import { client } from "~/rpc";
 import logo from "~/images/logo-white.png";
+import LogRocket from "logrocket";
 
 export const meta: MetaFunction = () => [{ title: "TCOS Ticket Booking" }];
 
 export const clientLoader = async () => {
   await initLiff();
   const profile = await client.api.profile.$get().then((c) => c.json());
+  LogRocket.identify(profile.providerUser.sub, {
+    name: profile.data?.name ?? profile.providerUser.name
+  })
   return json(profile);
 };
 
