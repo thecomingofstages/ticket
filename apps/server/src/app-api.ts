@@ -529,12 +529,17 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
         createdAt: true,
       },
       where: (tr) =>
-        and(eq(tr.transferAcceptId, acceptId), isNull(tr.toTransactionId)),
+        eq(tr.transferAcceptId, acceptId),
       with: {
         seat: {
           columns: {
             transactionId: false,
           },
+        },
+        transferedTo:{
+          columns: {
+            uid: true
+          }
         },
         transferedFrom: {
           columns: {},
@@ -550,7 +555,15 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
         },
       },
     });
-    if (results.length === 0)
+    // if there's any transferedTo, then the transfer is already accepted.
+    if (results.length === 0 || results.some((tr) => tr.transferedTo)) {
+      if(results.some((tr) => tr.transferedTo?.uid === user.uid)) {
+        // should redirect to ticket pags on client
+        return c.json({
+          success: false,
+          message: "คำขอโอนนี้ถูกยอมรับแล้ว",
+        } as const, 409)
+      }
       return c.json(
         {
           success: false,
@@ -558,6 +571,7 @@ const apiApp = new Hono<{ Bindings: Bindings; Variables: Variables }>()
         } as const,
         404
       );
+    }
     // results from drizzle query are duplicated
     // in reality, the createdAt field (the date this seatTransfer was initiated)
     // and the owner field (the original owner of the seat) should be the same single value

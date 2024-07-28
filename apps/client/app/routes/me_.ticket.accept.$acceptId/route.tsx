@@ -3,6 +3,7 @@ import {
   MetaFunction,
   isRouteErrorResponse,
   json,
+  redirect,
   useLoaderData,
   useNavigate,
   useRevalidator,
@@ -40,6 +41,8 @@ export const clientLoader = async ({ params }: ClientLoaderFunctionArgs) => {
   if (res.status === 200) {
     const { data } = await res.json();
     return json({ success: true, data, acceptId } as const);
+  } else if (res.status === 409) {
+    return redirect("/me/ticket");
   } else if (res.status === 403) {
     return json({ success: false } as const);
   } else {
